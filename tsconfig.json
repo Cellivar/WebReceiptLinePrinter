@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": false,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strict": true,
+    "checkJs": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noUnusedLocals": true,
+    "useDefineForClassFields": true,
+    "noUnusedParameters": true,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": true,
+    "incremental": true
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/ReceiptLine/ESCPOS.js",
+    "src/ReceiptLine/RECEIPTLINE.js"
+  ]
+}
