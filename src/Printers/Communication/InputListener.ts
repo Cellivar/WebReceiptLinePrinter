@@ -10,19 +10,15 @@ export interface IHandlerResponse<TInput> {
 
 export class InputMessageListener<TInput> {
   public start() {
-    new Promise<void>(async (resolve, reject) => {
-      this._resolveHandle = resolve;
-      //this._rejectHandle = reject;
-
+    new Promise<void>(async (_, reject) => {
       let aggregate: TInput[] = [];
       do {
         const data = await this._dataProvider();
 
         if (data instanceof DeviceCommunicationError) {
           console.error(`Error getting data from source: `, data);
-          // TODO: Is this right?
           reject(data);
-          continue;
+          break;
         }
 
         aggregate.push(data);
@@ -37,7 +33,6 @@ export class InputMessageListener<TInput> {
         // to it and wait again for more.
         aggregate = handleResult.remainderData ?? [];
       } while (!this._disposed);
-      resolve();
     })
     .catch((reason) => {
       // TODO: Better logging?
@@ -49,14 +44,7 @@ export class InputMessageListener<TInput> {
   public dispose() {
     if (this._disposed) { return ;}
     this._disposed = true;
-
-    if (this._resolveHandle !== undefined) {
-      this._resolveHandle();
-    }
   }
-
-  //private _rejectHandle?: (reason?: any) => void;
-  private _resolveHandle?: (value: void) => void;
 
   constructor(
     private readonly _dataProvider: DataProvider<TInput>,
