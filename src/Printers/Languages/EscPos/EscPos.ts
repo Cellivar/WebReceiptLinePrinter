@@ -285,8 +285,10 @@ export class EscPos extends RawCommandSet {
     }
 
     if (f.width !== undefined || f.height !== undefined || f.resetToDefault) { // GS !
-      const newHeight = f.height ?? docState.textFormat.height ?? 1;
-      const newWidth  = f.width  ?? docState.textFormat.width  ?? 1;
+      const resetHeight = f.resetToDefault === true ? 1 : undefined;
+      const resetWidth = f.resetToDefault === true ? 1 : undefined;
+      const newHeight = f.height ?? resetHeight ?? docState.textFormat.height ?? 1;
+      const newWidth  = f.width ?? resetWidth ?? docState.textFormat.width  ?? 1;
       docState.textFormat.height = newHeight;
       docState.textFormat.width = newWidth;
       buffer.push(Ascii.GS, this.enc('!'), (newHeight - 1) | (newWidth - 1) << 4);
