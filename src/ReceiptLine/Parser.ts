@@ -61,10 +61,10 @@ interface wrappedTextLine {
 function getLeftAlignmentMultiplier(align: Cmds.Alignment) {
   const alignMultiplier: Record<Cmds.Alignment, number> = {
     Left: 0,
-    Center: 1,
-    Right: 2
+    Center: 0.5,
+    Right: 1
   };
-  return alignMultiplier[align] / 2;
+  return alignMultiplier[align];
 }
 
 function getAlignmentFromWhitespace(str: string): Cmds.Alignment {
@@ -152,14 +152,18 @@ function verticalRuleEdge(columnWidths: number[], edge: 'top' | 'bottom') {
 }
 
 /** Add vertical rules according to column widths in a vertical rule section. */
-function verticalRuleAroundText(columnWidths: number[]) {
+function verticalRuleAroundText(columnWidths: number[], textHeight: Cmds.Height) {
   const verticalLine = getCharacterFromLinePoints(LinePoints.Up | LinePoints.Down);
   return [
+    // Don't use text drawing mode as we want to preserve the font height
+    new Cmds.TextFormatting({
+      height: textHeight,
+    }),
     // First column's vertical line
-    new Cmds.TextDraw(verticalLine),
+    new Cmds.Text(verticalLine),
     ...columnWidths.flatMap((w) => [
       new Cmds.OffsetPrintPosition('relative', w),
-      new Cmds.TextDraw(verticalLine)
+      new Cmds.Text(verticalLine)
     ])
   ];
 }
@@ -418,7 +422,7 @@ export function parseReceiptLineToDocument(doc: string, mediaOptions: IMediaOpti
     wrap: true,
     border: 1,
     widths: [],
-    align: 'Left',
+    align: 'Center',
     barcodeOptions: { barcodeType: 'code128', oneDwidth: 2, oneDheight: 72, showHumanReadable: false, cellSize: 3, errorCorrectionLevel: 'l' },
     nextRuleOperation: 'stopped',
     rules: { left: 0, width: 0, right: 0, widths: [] }
@@ -446,11 +450,6 @@ export function parseReceiptLineToDocument(doc: string, mediaOptions: IMediaOpti
     case 'addHorizontal':
       // append commands to stop rules
       res.push(
-        // ptr.command.normal() +
-        // ptr.command.area(state.rules.left, state.rules.width, state.rules.right) +
-        // ptr.command.align(0) +
-        // ptr.command.vrstop(state.rules.widths) +
-        // ptr.command.vrlf(false)
         ...resetFormattingCmds(state.rules.left, state.rules.width, state.rules.right),
         new Cmds.TextDraw(
           ...verticalRuleEdge(state.rules.widths, 'bottom')
@@ -574,6 +573,7 @@ function createLine(
 
   const isTextLine = line.every(el => el.text !== undefined);
   const firstColumn = line[0];
+  console.warn('First column', firstColumn);
 
   // remove zero width columns
   let columns = line.filter(el => el.width !== 0);
@@ -617,6 +617,7 @@ function createLine(
   const left = Math.floor(freeWidth * getLeftAlignmentMultiplier(firstColumn.lineAlignment));
   const width = mediaOptions.charactersPerLine - freeWidth;
   const right = freeWidth - left;
+  console.warn(`Line margins are | ${left} [ ${width} ] ${right} |`);
 
   // process text
   if (isTextLine) {
@@ -672,9 +673,6 @@ function createLine(
       : 1;
     for (let wrapIdx = 0; wrapIdx < maxWrappedLines; wrapIdx++) {
       // Reset formatting to the start of the new line
-      // let res = printer.command.normal() +
-      //   printer.command.area(left, width, right) +
-      //   printer.command.align(0);
       const wrappedLineCmds = resetFormattingCmds(left, width, right);
       let printPosition = 0;
 
@@ -687,15 +685,9 @@ function createLine(
         ) as Cmds.Height;
 
         // append commands to print vertical rules
-        // res += printer.command.normal() +
-        //   printer.command.absolute(p++) +
-        //   printer.command.vr(widths, height);
         wrappedLineCmds.push(
           new Cmds.OffsetPrintPosition('absolute', printPosition++),
-          new Cmds.TextFormatting({
-            height,
-          }),
-          ...verticalRuleAroundText(widths),
+          ...verticalRuleAroundText(widths, height),
         );
       }
 
@@ -742,12 +734,6 @@ function createLine(
   if (firstColumn.hr === true) {
     switch (state.nextRuleOperation) {
       case 'stopped':
-        // append commands to print horizontal rule
-        //   printer.command.normal() +
-        //   printer.command.area(left, width, right) +
-        //   printer.command.align(0) +
-        //   printer.command.hr(width) +
-        //   printer.command.lf()
         lineCmds.push(
           new Cmds.TextFormatting({ resetToDefault: true }),
           new Cmds.SetPrintArea(left, width, right),
@@ -771,12 +757,6 @@ function createLine(
       case 'addHorizontal':
         // append commands to stop rules
         lineCmds.push(
-          // printer.command.normal() +
-          // printer.command.area(state.rules.left, state.rules.width, state.rules.right) +
-          // printer.command.align(0) +
-          // printer.command.vrstop(state.rules.widths) +
-          // printer.command.vrlf(false) +
-          // printer.command.cut()
           ...resetFormattingCmds(state.rules.left, state.rules.width, state.rules.right),
           new Cmds.TextDraw(...verticalRuleEdge(state.rules.widths, 'bottom').map(getCharacterFromLinePoints)),
           new Cmds.SetLineSpacing(1),
@@ -809,11 +789,6 @@ function createLine(
         case 'addHorizontal':
           // append commands to stop rules
           lineCmds.push(
-            // printer.command.normal() +
-            // printer.command.area(state.rules.left, state.rules.width, state.rules.right) +
-            // printer.command.align(0) +
-            // printer.command.vrstop(state.rules.widths) +
-            // printer.command.vrlf(false));
             ...resetFormattingCmds(state.rules.left, state.rules.width, state.rules.right),
             new Cmds.TextDraw(...verticalRuleEdge(state.rules.widths, 'bottom').map(getCharacterFromLinePoints)),
             new Cmds.SetLineSpacing(1),
@@ -1008,7 +983,7 @@ function wrapText(
         if (j > 0) {
           // Copy formatting setup to retain its settings
           res.push({
-            decor: Object.create(decor),
+            decor: structuredClone(decor),
             text: t.slice(0, j).join('')
           });
           // update text height

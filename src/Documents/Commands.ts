@@ -206,7 +206,17 @@ export class TextFormatting implements IPrinterCommand {
   name = 'Set text formatting'
   type = "TextFormatting" as const;
   effectFlags = NoEffect;
-  toDisplay() { return this.name; } // TODO: Improve!
+  toDisplay() {
+    const sb = ['Set text formatting: '];
+    if (this.format.resetToDefault === true) { sb.push('first reset to defaults'); }
+    if (this.format.bold      !== undefined) { sb.push('set bold ' +      this.format.bold); }
+    if (this.format.height    !== undefined) { sb.push('set height ' +    this.format.height); }
+    if (this.format.width     !== undefined) { sb.push('set width ' +     this.format.width); }
+    if (this.format.underline !== undefined) { sb.push('set underline ' + this.format.underline); }
+    if (this.format.invert    !== undefined) { sb.push('set invert ' +    this.format.invert); }
+    if (this.format.alignment !== undefined) { sb.push('set alignment ' + this.format.alignment); }
+    return sb.join(', ');
+   }
 
   constructor(public readonly format: TextFormat = {}) {}
 }

@@ -173,7 +173,7 @@ export class EscPos extends RawCommandSet {
       case "SetLineSpacing":
         return this.setLineSpacing((cmd as Cmds.SetLineSpacing).spacing, docState);
       case "TextFormatting":
-        return this.setTextFormatting(cmd as Cmds.TextFormatting, docState);
+        return this.setTextFormatting((cmd as Cmds.TextFormatting).format, docState);
       case "Codepage":
         return this.setCodepage((cmd as Cmds.SetCodepage).codepage, docState);
 
@@ -245,14 +245,14 @@ export class EscPos extends RawCommandSet {
     return new Uint8Array([Ascii.ESC, this.enc('p'), pin, onMS, offMS]);
   }
 
-  private setTextFormatting(cmd: Cmds.TextFormatting, docState: EscPosDocState) {
-    const f = cmd.format;
+  private setTextFormatting(f: Cmds.TextFormat, docState: EscPosDocState) {
     const buffer: number[] = [];
 
-    if (f.underline !== undefined) { // ESC - // FS -
+    if (f.underline !== undefined || f.resetToDefault) { // ESC - // FS -
       docState.textFormat.underline = f.underline;
       let op: number;
       switch (f.underline) {
+        default:
         case 'None'  : op = 0x00; break;
         case 'Single': op = 0x01; break;
         case 'Double': op = 0x02; break;
@@ -260,30 +260,31 @@ export class EscPos extends RawCommandSet {
       buffer.push(Ascii.ESC, 0x2d, op, Ascii.FS, 0x2d, op);
     }
 
-    if (f.bold !== undefined) { // ESC E
-      docState.textFormat.bold = f.bold;
+    if (f.bold !== undefined || f.resetToDefault) { // ESC E
+      docState.textFormat.bold = f.bold ?? 'None';
       const op = f.bold === 'Enable' ? 0x01 : 0x00;
       buffer.push(Ascii.ESC, this.enc('E'), op);
     }
 
-    if (f.invert !== undefined) { // GS B
-      docState.textFormat.invert = f.invert;
+    if (f.invert !== undefined || f.resetToDefault) { // GS B
+      docState.textFormat.invert = f.invert ?? 'None';
       const op = f.invert === 'Enable' ? 0x01 : 0x00;
       buffer.push(Ascii.GS, this.enc('B'), op);
     }
 
-    if (f.alignment !== undefined) { // ESC a
+    if (f.alignment !== undefined || f.resetToDefault) { // ESC a
       docState.textFormat.alignment = f.alignment;
       let op: number;
       switch (f.alignment) {
         case 'Left': op = 0x00; break;
+        default:
         case 'Center': op = 0x01; break;
         case 'Right': op = 0x02; break;
       }
       buffer.push(Ascii.ESC, this.enc('a'), op);
     }
 
-    if (f.width !== undefined || f.height !== undefined) { // GS !
+    if (f.width !== undefined || f.height !== undefined || f.resetToDefault) { // GS !
       const newHeight = f.height ?? docState.textFormat.height ?? 1;
       const newWidth  = f.width  ?? docState.textFormat.width  ?? 1;
       docState.textFormat.height = newHeight;
@@ -339,6 +340,7 @@ export class EscPos extends RawCommandSet {
     docState: EscPosDocState,
   ) {
     return this.combineCommands(
+      this.setTextFormatting({width: 1, height: 1}, docState),
       this.setFormattingCodepage(),
       this.text(text.join(''), docState),
     );
