@@ -1,7 +1,7 @@
 <html>
 
 <head>
-    <title>Printer Tool</title>
+    <title>WebReceiptLinePrinter Tool</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
@@ -13,7 +13,7 @@
     <meta name="theme-color" content="#eeeeee" media="(prefers-color-scheme: dark)">
 </head>
 <body>
-    <a href="https://github.com/cellivar/WebReceipt" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+    <a href="https://github.com/cellivar/WebReceiptLinePrinter" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
     <!--
         This part is just evil shenanigans to make the demo work, you can ignore it.
 
@@ -54,6 +54,11 @@
             document.getElementById('browserNoWebUsb').classList.remove('d-none');
         }
 
+        // WebUSB requires HTTPS, show an error if the page wasn't loaded securely.
+        if (location.protocol !== 'https:') {
+            document.getElementById('urlNotSecure').classList.remove('d-none');
+        }
+
         // Display a warning if the OS is windows, which needs some configuration.
         if (navigator.appVersion.indexOf('Win') != -1) {
             document.getElementById('windowsDriverWarning').classList.remove('d-none');
@@ -66,83 +71,88 @@
 
         // ChromeOS works out of the box!
 
-        // WebUSB requires HTTPS, show an error if the page wasn't loaded securely.
-        if (location.protocol !== 'https:') {
-            document.getElementById('urlNotSecure').classList.remove('d-none');
-        }
-
     </script>
 
     <!-- Here's some actual demo code. Note that it is typescript, not javascript. -->
     <script type="text/typescript" id="cool_demo_code_to_show_off_the_lib">
         import {
-            BitmapGRF,
-            DarknessPercent,
-            IDocument,
-            ILabelDocumentBuilder,
-            PrinterUsbManager,
-            PrinterCommunicationOptions,
-            PrintSpeed,
-            Printer,
-            ReadyToPrintDocuments
+          UsbDeviceManager,
+          ReceiptPrinter,
+          parseReceiptLineToDocument,
+          IDocument,
+          TestPrint,
         } from 'web-receiptline-printer';
+        //import {
+        //    BitmapGRF,
+        //    DarknessPercent,
+        //    IDocument,
+        //    ILabelDocumentBuilder,
+        //    PrinterUsbManager,
+        //    PrinterCommunicationOptions,
+        //    PrintSpeed,
+        //    Printer,
+        //    ReadyToPrintDocuments
+        //} from 'web-receiptline-printer';
 
         // For this demo we're going to make use of the USB printer manager
         // so it can take care of concerns like the USB connect and disconnect events.
-
-        // Enable debugging, so the dev console can fill up with interesting messages!
-        const debugOpts = new PrinterCommunicationOptions();
-        debugOpts.debug = true;
-        const printerMgr = new PrinterUsbManager(window.navigator, debugOpts);
+        const printerMgr = new UsbDeviceManager<ReceiptPrinter>(
+          window.navigator.usb,
+          ReceiptPrinter.fromUSBDevice,
+          {
+            // Enable debugging, so the dev console can fill up with interesting messages!
+            debug: true,
+            requestOptions: {
+              // Limit the USB devices we try to connect to.
+              filters: [
+                {
+                  vendorId: 0x04B8, // Epson
+                  //productId: 0x0202, // TM-T88V
+                }
+              ]
+            }
+          }
+        );
 
         // We'll wire up some basic event listeners to the printer manager.
         // First, a button to prompt a user to add a printer.
         const addPrinterBtn = document.getElementById('addprinter');
-        addPrinterBtn.addEventListener('click', async () => printerMgr.promptToConnectUsbPrinter());
+        addPrinterBtn.addEventListener('click', async () => printerMgr.promptForNewDevice());
 
         // Next a button to manually refresh all printers, just in case.
         const refreshPrinterBtn = document.getElementById('refreshPrinters');
-        refreshPrinterBtn.addEventListener('click', async () => printerMgr.reconnectAllPrinters());
+        refreshPrinterBtn.addEventListener('click', async () => printerMgr.forceReconnect());
 
-        // Next we wire up some events on the PrinterUsbManager itself.
-        printerMgr.addEventListener('connectedPrinter', ({ detail }) => {
+        // Next we wire up some events on the device manager itself.
+        printerMgr.addEventListener('connectedDevice', ({ detail }) => {
             const printer = detail;
-            console.log('New printer is a', printer.printerModel.model);
+            console.log('New printer is a', printer.printerModel);
             const config = printer.printerConfig;
-            console.log('Printer darkness is', config.darknessPercent, 'percent');
-            console.log('Printer speed is', PrintSpeed[config.speed.printSpeed]);
-            console.log(
-                'Label is',
-                config.labelWidthInches,
-                'in wide and',
-                config.labelHeightInches,
-                'in tall, with a gap of',
-                config.labelGapInches,
-                'in.');
+            console.log(`Printer is a ${config.model} by ${config.manufacturer}, serial ${config.serialNumber}, firmware ${config.firmware}.`);
+            console.log(`Printer has ${config.charactersPerLine} characters per line`);
+            console.log(`Printer ${config.hasAutocutter ? 'does' : 'does not'} have an autocutter.`);
+            console.log(`Printer ${config.hasMultiByteSupport ? 'does' : 'does not'} support multi-byte language ${config.fontLanguageSupport}.`);
         });
         // There's also an event that will tell you when a printer disconnects.
-        printerMgr.addEventListener('disconnectedPrinter', ({ detail }) => {
+        printerMgr.addEventListener('disconnectedDevice', ({ detail }) => {
             const printer = detail;
             // TODO: Hide appropriate interface.
-            console.log('Lost printer', printer.printerModel.model, 'serial', printer.printerConfig.serialNumber);
+            console.log(`Lost printer ${printer.printerModel} (${printer.printerConfig.serialNumber}).`);
         });
 
         // When the browser first loaded the page any previously connected printers would have caused
         // a connection event. Our listener wasn't listening yet so missed it.
         // It's good practice to force a reconnect once your event handlers are ready.
         // We're going to skip this for now though, because we want it to happen after the app is ready.
-        //await printerMgr.reconnectAllPrinters();
+        //await printerMgr.forceReconnect();
 
         // And that's all there is to setup! The page can now talk to printers.
-        // If you're using a chromebook this should just work. If you're on Windows
-        // you might need to do some driver setup, see the repo README for more details.
-
-        // The rest of this demo is an example of a basic label generator app.
+        // The rest of this demo is an example of a basic receipt printer app.
 
         // The app's logic is wrapped in a class just for ease of reading.
-        class BasicLabelDesignerApp {
+        class BasicDocumentPrinterApp {
             constructor(
-                manager: PrinterUsbManager,
+                manager: UsbDeviceManager<ReceiptPrinter>,
                 btnContainer: HTMLElement,
                 labelForm: HTMLElement,
                 labelFormInstructions: HTMLElement,
@@ -155,20 +165,20 @@
                 this.configModal = configModal;
 
                 // Based on the containers, map the various listeners.
-                this.configModalHandle = new bootstrap.Modal(this.configModal);
-                this.configModal
-                    .querySelector('form')
-                    .addEventListener('submit', this.updatePrinterConfig.bind(this));
-                this.labelForm.addEventListener('blur', this.renderTextForm.bind(this));
-                this.labelForm.addEventListener('keyup', this.renderTextForm.bind(this));
+                //this.configModalHandle = new bootstrap.Modal(this.configModal);
+                //this.configModal
+                //    .querySelector('form')
+                //    .addEventListener('submit', this.updatePrinterConfig.bind(this));
+                //this.labelForm.addEventListener('blur', this.renderTextForm.bind(this));
+                //this.labelForm.addEventListener('keyup', this.renderTextForm.bind(this));
 
                 // Add a second set of event listeners for printer connect and disconnect to redraw
                 // the printer list when it changes.
-                this.manager.addEventListener('connectedPrinter', ({ detail }) => {
+                this.manager.addEventListener('connectedDevice', ({ detail }) => {
                     this.activePrinterIndex = -1;
                     this.redrawPrinterButtons();
                 });
-                this.manager.addEventListener('disconnectedPrinter', ({ detail }) => {
+                this.manager.addEventListener('disconnectedDevice', ({ detail }) => {
                     this.activePrinterIndex = -1;
                     this.redrawPrinterButtons();
                 });
@@ -202,9 +212,9 @@
             private labelFormInstructions: HTMLElement;
             private configModal: HTMLElement;
             private fontName: string;
-            private manager: PrinterUsbManager;
-            get printers(): readonly Printer[] {
-                return this.manager.printers;
+            private manager: UsbDeviceManager<ReceiptPrinter>;
+            get printers(): readonly ReceiptPrinter[] {
+                return this.manager.devices;
             }
 
             // Track which printer is currently selected for operations
@@ -216,13 +226,13 @@
             }
             set activePrinterIndex(printerIdx: number) {
                 this._activePrinter = printerIdx;
-                this.redrawTextCanvas();
+                //this.redrawTextCanvas();
             }
 
             /** Initialize the app */
             public async init() {
                 this.redrawPrinterButtons();
-                this.redrawTextCanvas();
+                //this.redrawTextCanvas();
             }
 
             /** Display the configuration for a printer. */
@@ -339,15 +349,16 @@
                         }
                         this.activePrinterIndex = printerIdx;
                         this.redrawPrinterButtonHighlights();
-                        this.redrawTextCanvas();
+                        //this.redrawTextCanvas();
                     });
                 document.getElementById(`printtest_${idx}`)
                     .addEventListener('click', async (e) => {
                         e.preventDefault();
                         const printerIdx = e.currentTarget.dataset.printerIdx as number;
                         const printer = this.printers[printerIdx];
-                        const doc = ReadyToPrintDocuments.printTestLabelDocument(
-                            printer.printerConfig.labelWidthDots);
+                        const doc = {
+                          commands: [new TestPrint()]
+                        };
                         await printer.sendDocument(doc);
                     });
                 document.getElementById(`feedlabel_${idx}`)
@@ -375,119 +386,126 @@
                     });
             }
 
-            /** Redraw the text canvas size according to the printer. */
-            private redrawTextCanvas() {
-                const printer = this.activePrinter;
-                if (printer == null) {
-                    this.labelForm.classList.add('d-none');
-                    this.labelFormInstructions.classList.remove('d-none');
-                    return;
-                } else {
-                    this.labelForm.classList.remove('d-none');
-                    this.labelFormInstructions.classList.add('d-none');
-                }
-
-                // Resize the canvas to match the label size.
-                const canvas = this.labelForm.querySelector("#labelCanvas") as HTMLCanvasElement;
-                // Add a small margin as printer alignment is not exact.
-                canvas.width = printer.printerConfig.labelWidthDots - 2;
-                canvas.height = printer.printerConfig.labelHeightDots - 2;
-
-                const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
-                textarea.value = "Enter your label text here!";
-                this.renderTextForm(null);
+            /** Parse the text area as a ReceiptLine document. */
+            private getReceiptLineDoc(): IDocument {
+              const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
+              const rawReceiptline = textarea.value;
+              return parseReceiptLineToDocument(rawReceiptline);
             }
+
+            /** Redraw the text canvas size according to the printer. */
+            // private redrawTextCanvas() {
+            //                 const printer = this.activePrinter;
+            //                 if (printer == null) {
+            //                     this.labelForm.classList.add('d-none');
+            //                     this.labelFormInstructions.classList.remove('d-none');
+            //                     return;
+            //                 } else {
+            //                     this.labelForm.classList.remove('d-none');
+            //                     this.labelFormInstructions.classList.add('d-none');
+            //                 }
+
+            //                 // Resize the canvas to match the label size.
+            //                 const canvas = this.labelForm.querySelector("#labelCanvas") as HTMLCanvasElement;
+            //                 // Add a small margin as printer alignment is not exact.
+            //                 canvas.width = printer.printerConfig.labelWidthDots - 2;
+            //                 canvas.height = printer.printerConfig.labelHeightDots - 2;
+
+            //                 const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
+            //                 textarea.value = "Enter your label text here!";
+            //                 this.renderTextForm(null);
+            //             }
 
             /** Render the text form to the canvas */
-            private renderTextForm(e: KeyboardEvent) {
-                const printer = this.activePrinter;
-                if (printer == null) {
-                    return;
-                }
+            // private renderTextForm(e: KeyboardEvent) {
+            //     const printer = this.activePrinter;
+            //     if (printer == null) {
+            //         return;
+            //     }
 
-                const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
-                const canvas = this.labelForm.querySelector("#labelCanvas") as HTMLCanvasElement;
-                const pageContext = canvas.getContext('2d');
-                pageContext.clearRect(0, 0, canvas.width, canvas.height);
+            //     const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
+            //     const canvas = this.labelForm.querySelector("#labelCanvas") as HTMLCanvasElement;
+            //     const pageContext = canvas.getContext('2d');
+            //     pageContext.clearRect(0, 0, canvas.width, canvas.height);
 
-                // We'd like the preview image to be as close as possible to what the printer will
-                // actually print. To do this we don't draw text to the page's canvas directly,
-                // instead we draw to an offscreen canvas, render that canvas to a monochrome bitmap,
-                // then render *that* back to the page's canvas. This is a more accurate picture of
-                // what the label will end up looking like.
+            //     // We'd like the preview image to be as close as possible to what the printer will
+            //     // actually print. To do this we don't draw text to the page's canvas directly,
+            //     // instead we draw to an offscreen canvas, render that canvas to a monochrome bitmap,
+            //     // then render *that* back to the page's canvas. This is a more accurate picture of
+            //     // what the label will end up looking like.
 
-                // A more complex app could do this more gracefully!
-                const offscreenContext = new OffscreenCanvas(canvas.width, canvas.height).getContext('2d');
-                offscreenContext.font = `30pt ${this.fontName}`;
-                offscreenContext.fillStyle = "#000000";
+            //     // A more complex app could do this more gracefully!
+            //     const offscreenContext = new OffscreenCanvas(canvas.width, canvas.height).getContext('2d');
+            //     offscreenContext.font = `30pt ${this.fontName}`;
+            //     offscreenContext.fillStyle = "#000000";
 
-                // fillText doesn't do newlines, do that manually
-                textarea.value.split('\n').forEach((l, i) => {
-                    offscreenContext.fillText(l, 5, (i * 31) + 30);
-                })
+            //     // fillText doesn't do newlines, do that manually
+            //     textarea.value.split('\n').forEach((l, i) => {
+            //         offscreenContext.fillText(l, 5, (i * 31) + 30);
+            //     })
 
-                // Now into the monochrome bitmap.
-                const offscreenImg = offscreenContext.getImageData(0, 0, canvas.width, canvas.height);
-                const monoImg = BitmapGRF.fromCanvasImageData(offscreenImg, { trimWhitespace: false });
-                // And finally back onto the page.
-                pageContext.putImageData(monoImg.toImageData(), 0, 0);
-            }
+            //     // Now into the monochrome bitmap.
+            //     const offscreenImg = offscreenContext.getImageData(0, 0, canvas.width, canvas.height);
+            //     const monoImg = BitmapGRF.fromCanvasImageData(offscreenImg, { trimWhitespace: false });
+            //     // And finally back onto the page.
+            //     pageContext.putImageData(monoImg.toImageData(), 0, 0);
+            // }
 
             /** Render the canvas to a document for printing */
-            private addCanvasImageToLabelDoc(builder: ILabelDocumentBuilder): IDocument {
-                const canvas = this.labelForm.querySelector("#labelCanvas") as HTMLCanvasElement;
-                const imgData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+            // private addCanvasImageToLabelDoc(builder: ILabelDocumentBuilder): IDocument {
+            //     const canvas = this.labelForm.querySelector("#labelCanvas") as HTMLCanvasElement;
+            //     const imgData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
 
-                // One of the benefits of this library is being able to render images to a canvas element
-                // and sending that canvas directly to a label. This allows your webpage to generate complex
-                // images and fonts (like emoji!) that EPL/ZPL can't support.
-                return builder
-                    .addImageFromImageData(imgData)
-                    .addPrintCmd()
-                    .finalize();
-            }
+            //     // One of the benefits of this library is being able to render images to a canvas element
+            //     // and sending that canvas directly to a label. This allows your webpage to generate complex
+            //     // images and fonts (like emoji!) that EPL/ZPL can't support.
+            //     return builder
+            //         .addImageFromImageData(imgData)
+            //         .addPrintCmd()
+            //         .finalize();
+            // }
 
             /** Send the contents of the config form as a config label to the printer. */
-            private async updatePrinterConfig(e: SubmitEvent) {
-                e.preventDefault();
+            // private async updatePrinterConfig(e: SubmitEvent) {
+            //     e.preventDefault();
 
-                // Figure out the right printer
-                const formElement = this.configModal.querySelector('form');
-                const form = formElement.elements as HTMLFormControlsCollection;
-                const printerIdx = parseInt(formElement.querySelector('#modalPrinterIndexText').innerText);
-                const printer = this.printers[printerIdx];
-                if (printer == null) {
-                    return;
-                }
+            //     // Figure out the right printer
+            //     const formElement = this.configModal.querySelector('form');
+            //     const form = formElement.elements as HTMLFormControlsCollection;
+            //     const printerIdx = parseInt(formElement.querySelector('#modalPrinterIndexText').innerText);
+            //     const printer = this.printers[printerIdx];
+            //     if (printer == null) {
+            //         return;
+            //     }
 
-                form.modalSubmit.setAttribute("disabled", "");
-                form.modalCancel.setAttribute("disabled", "");
+            //     form.modalSubmit.setAttribute("disabled", "");
+            //     form.modalCancel.setAttribute("disabled", "");
 
-                // Pull the values out of the form.
-                const darkness = parseInt(form.modalDarkness.value) as DarknessPercent;
-                const rawSpeed = parseInt(form.modalSpeed.value) as PrintSpeed;
-                const labelWidthInches = parseFloat(form.modalLabelWidth.value);
-                const autosense = form.modalWithAutosense.checked;
+            //     // Pull the values out of the form.
+            //     const darkness = parseInt(form.modalDarkness.value) as DarknessPercent;
+            //     const rawSpeed = parseInt(form.modalSpeed.value) as PrintSpeed;
+            //     const labelWidthInches = parseFloat(form.modalLabelWidth.value);
+            //     const autosense = form.modalWithAutosense.checked;
 
-                // Construct the config document with the values from the form
-                const configDoc = printer
-                    .getConfigDocument()
-                    .setPrintDirection()
-                    .setLabelHomeOffsetDots(0, 0)
-                    .setPrintSpeed(rawSpeed)
-                    .setDarknessConfig(darkness)
-                    .setLabelDimensions(labelWidthInches);
-                const doc = autosense
-                    ? configDoc.autosenseLabelLength()
-                    : configDoc.finalize();
-                // And send the whole shebang to the printer!
-                await printer.sendDocument(doc);
+            //     // Construct the config document with the values from the form
+            //     const configDoc = printer
+            //         .getConfigDocument()
+            //         .setPrintDirection()
+            //         .setLabelHomeOffsetDots(0, 0)
+            //         .setPrintSpeed(rawSpeed)
+            //         .setDarknessConfig(darkness)
+            //         .setLabelDimensions(labelWidthInches);
+            //     const doc = autosense
+            //         ? configDoc.autosenseLabelLength()
+            //         : configDoc.finalize();
+            //     // And send the whole shebang to the printer!
+            //     await printer.sendDocument(doc);
 
-                form.modalSubmit.removeAttribute("disabled");
-                form.modalCancel.removeAttribute("disabled");
-                this.activePrinterIndex = printerIdx;
-                this.configModalHandle.hide();
-            }
+            //     form.modalSubmit.removeAttribute("disabled");
+            //     form.modalCancel.removeAttribute("disabled");
+            //     this.activePrinterIndex = printerIdx;
+            //     this.configModalHandle.hide();
+            // }
         }
 
         // With the app class defined we can run it.
@@ -498,14 +516,14 @@
         const configModal = document.getElementById("printerOptionModal");
 
         // And feed that into the app class to manage the elements
-        const app = new BasicLabelDesignerApp(printerMgr, btnContainer, labelForm, labelFormInstructions, configModal);
+        const app = new BasicDocumentPrinterApp(printerMgr, btnContainer, labelForm, labelFormInstructions, configModal);
         // and let it take over the UI.
         await app.init();
         // Then hang it on the window object so we can play with it elsewhere, like the dev console.
         window.printer_app = app;
 
         // Now we'll fire the reconnect since our UI is wired up.
-        await printerMgr.reconnectAllPrinters();
+        await printerMgr.forceReconnect();
 
         // We're done here. Bring in the dancing lobsters.
     </script>
@@ -516,12 +534,12 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     <h4>Windows may need extra configuration</h4>
                     <p>It looks like your operating system is Windows. The <a href="https://web.dev/build-for-webusb/#windows">windows driver model conflicts with WebUSB</a> and might prevent this page from working with a printer.</p>
-                    <p>To make this demo work you'll need to <a href="https://cellivar.github.io/WebZLP/docs/windows_driver">set up your driver correctly</a>. You'll see errors in the developer console if it isn't configured correctly.</p>
+                    <p>To make this demo work you'll need to <a href="https://cellivar.github.io/WebZLP/docs/windows_driver">set up your driver correctly</a>. You only need to do this once. You'll see errors in the developer console if it isn't configured correctly.</p>
                 </div>
                 <div class="alert alert-warning alert-dismissible d-none" role="alert" id="linuxDriverWarning">
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     <h4>Linux may need extra configuration</h4>
-                    <p>It looks like your operating system is Linux. The <a href="https://web.dev/build-for-webusb/#linux">linux default driver conflicts with WebUSB</a> and might prevent this page from working with a printer.</p>
+                    <p>It looks like your operating system is Linux. If you're using an Android device you can ignore this warning. The <a href="https://web.dev/build-for-webusb/#linux">linux default driver conflicts with WebUSB</a> and might prevent this page from working with a printer.</p>
                     <p>If a printer doesn't connect successfully you'll need to <a href="https://github.com/anthroarts/artshow-jockey/tree/73a794bcaa0f0a10625c94d4b2876eba5b638287/udev">set up udev rules</a> to load a different driver. You'll see errors in the developer console if it isn't configured correctly.</p>
                     <p>You may be able to find the correct USB IDs for your device by visiting either opening <pre>chrome://usb-internals</pre> in a new tab and clicking on the 'Devices' tab, or visiting the <a href="http://www.linux-usb.org/usb-ids.html">the USB ID Repository</a>.</p>
                 </div>
@@ -536,6 +554,7 @@
                 <div class="alert alert-info" role="alert" id="loadingIndicator">
                     <h4>Loading....</h4>
                     <p>If you see this for a long time check the dev console for errors and try the <button id="emergencyRefreshBtn">emergency reset button.</button></p>
+                    <p>This website may not work in an incognito window, 'private browsing' mode, or a ChromeOS Guest session.</p>
                 </div>
             </div>
         </div>
@@ -559,12 +578,10 @@
                 </div>
                 <div class="col-9">
                     <form id="labelForm" action="javascript:void(0);" class="d-none">
-                        <h5>Preview</h5>
-                        <canvas id="labelCanvas" width="584" height="160" style="border: 2px solid blue; background-color: white; margin-bottom: 10px;"></canvas>
                         <h5>Input</h5>
-                        <textarea id="labelFormText" name="labelText" cols="40" rows="10" wrap="hard"
+                        <textarea id="labelFormText" name="labelText" cols="48" rows="100" wrap="hard"
                             style="font-family: monospace; resize: both;"
-                            placeholder="Enter your label text here!"></textarea>
+                            placeholder="Enter your ReceiptLine receipt here!"></textarea>
                     </form>
                     <div id="labelFormInstructions">
                         <p>Connect a printer to your computer, then click Add Printer!</p>
