@@ -1,6 +1,6 @@
 import type { Codepage } from "../Codepages/index.js";
 import type { ISettingUpdateMessage } from "../Communication/Messages.js";
-import { EscPos, type PrinterCommandLanguage } from "../Languages/index.js";
+import { EscPos, hex, type PrinterCommandLanguage } from "../Languages/index.js";
 
 /** Coordinates on a 2D plane. */
 export interface Coordinate {
@@ -52,7 +52,7 @@ export interface IPrinterEncoding {
 }
 
 export interface IMediaOptions {
-  /** Number of characters printed per line. Commonly 48. */
+  /** Number of characters printed per line. Commonly 42. */
   charactersPerLine: number;
 
   /** The orientation of page contents. */

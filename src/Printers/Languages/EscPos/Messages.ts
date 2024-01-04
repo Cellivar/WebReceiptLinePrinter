@@ -1,6 +1,6 @@
 import * as Cmds from '../../../Documents/index.js'
 import { MessageParsingError, type IMessageHandlerResult } from "../../Communication/index.js";
-import { AsciiCodeNumbers } from '../../Codepages/index.js';
+import { AsciiCodeNumbers, hex } from '../../Codepages/index.js';
 import { parseAutoStatusBack } from './AutoStatusBack.js';
 import { TransmitPrinterId, parseTransmitPrinterId } from './index.js';
 import { TransmitPrinterStatus, parseTransmitPrinterStatus } from './PrinterStatusCmd.js';
@@ -104,10 +104,6 @@ type MessageHandlerDelegate = (
   msg: Uint8Array,
   sentCommand: Cmds.IPrinterCommand
 ) => IMessageHandlerResult<Uint8Array>;
-
-function hex(num: number) {
-  return "0x" + (num + 0x100).toString(16).substring(-2);
-}
 
 export function handleEscPosMessage(
   msg: Uint8Array,
