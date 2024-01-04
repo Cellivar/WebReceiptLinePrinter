@@ -59,10 +59,6 @@ export interface IMediaOptions {
   orientation: PrintOrientation;
 }
 
-function hex(num: number) {
-  return "0x" + (num + 0x100).toString(16).substring(-2);
-}
-
 export class PrinterOptions implements IMediaOptions, IPrinterEncoding, IPrinterFactoryInformation {
   charactersPerLine: number = 42; // TODO: dynamic!
   orientation: PrintOrientation = PrintOrientation.normal;

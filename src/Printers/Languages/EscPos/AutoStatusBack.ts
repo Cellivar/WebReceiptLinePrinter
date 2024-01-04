@@ -1,9 +1,8 @@
 import * as Cmds from "../../../Documents/index.js";
-import { EscPosLang } from "./EscPos.js";
 import type { IErrorMessage, IStatusMessage, PrinterMessage } from "../../Communication/Messages.js";
-import { hasFlag, type EscPosDocState } from "./index.js";
+import { hasFlag, type EscPosDocState, EscPos } from "./index.js";
 import type { CommandSet } from "../../../Documents/CommandSet.js";
-import { AsciiCodeNumbers } from "../index.js";
+import { AsciiCodeNumbers, PrinterCommandLanguages } from "../index.js";
 
 export interface AutoStatusBackSetting {
   drawerKickStatus: boolean,
@@ -16,7 +15,7 @@ export interface AutoStatusBackSetting {
 export class SetAutoStatusBack implements Cmds.IPrinterExtendedCommand {
   public static typeE = Symbol("SetAutoStatusBack");
   typeExtended                 = SetAutoStatusBack.typeE;
-  commandLanguageApplicability = EscPosLang;
+  commandLanguageApplicability = new PrinterCommandLanguages([EscPos]);
   name                         = 'Set Automatic Status Back setting'
   type                         = 'CustomCommand' as const;
   effectFlags                  = Cmds.NoEffect;

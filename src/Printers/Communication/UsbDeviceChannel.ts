@@ -57,7 +57,7 @@ export class UsbDeviceChannel implements IDeviceChannel<Uint8Array, Uint8Array> 
   private async setup() {
     try {
       await this.connect();
-    } finally {
+    } catch {
       await this.dispose();
     }
     this._readyFlag = true;
@@ -193,9 +193,8 @@ export class UsbDeviceChannel implements IDeviceChannel<Uint8Array, Uint8Array> 
     }
   }
 
-  private noop = new Uint8Array;
-  public async getInput(): Promise<Uint8Array | DeviceCommunicationError> {
-    if (this.deviceIn === undefined) { return this.noop; }
+  public async getInput(): Promise<Uint8Array[] | DeviceCommunicationError> {
+    if (this.deviceIn === undefined || this._disposed) { return new DeviceCommunicationError('Channel is disposed.'); }
     const result = await this.device.transferIn(
       this.deviceIn.endpointNumber,
       this.deviceIn.packetSize * 8); // Usually 64 * 8 = 512
@@ -209,9 +208,9 @@ export class UsbDeviceChannel implements IDeviceChannel<Uint8Array, Uint8Array> 
     if (result.status === "babble") {
       console.error(`USB device gave 'babble' error on receipt of data. Response data was likely lost. This may indicate an issue with the device or the way this library tries to communicate to the device.`);
     }
-    if (result.data === undefined) { return this.noop; }
+    if (result.data === undefined || result.data.byteLength === 0) { return []; }
 
-    return new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength);
+    return [new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength)];
   }
 
   private getCommMode(output: boolean, input: boolean) {

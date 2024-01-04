@@ -1,8 +1,8 @@
 import { type CompiledDocument, type IDocument, Transaction } from "../Documents/index.js";
 import * as Cmds from "../Documents/index.js";
-import { UsbDeviceChannel, type IDeviceChannel, type IDeviceCommunicationOptions, InputMessageListener, type IHandlerResponse, DeviceCommunicationError, DeviceNotReadyError, type IStatusMessage, type IErrorMessage } from "./Communication/index.js";
+import { UsbDeviceChannel, type IDeviceChannel, type IDeviceCommunicationOptions, InputMessageListener, type IHandlerResponse, DeviceCommunicationError, DeviceNotReadyError, type IStatusMessage, type IErrorMessage, type IDevice } from "./Communication/index.js";
 import { transpileDocument } from "../Documents/DocumentTranspiler.js";
-import { EscPos, type CommandSet } from "./Languages/index.js";
+import { EscPos, type CommandSet, asciiToDisplay } from "./Languages/index.js";
 import { PrinterOptions } from "./Options/index.js";
 
 export interface ReceiptPrinterEventMap {
@@ -34,7 +34,7 @@ function promiseWithTimeout<T>(
   return Promise.race<T>([promise, timeout]);
 }
 
-export class ReceiptPrinter extends EventTarget {
+export class ReceiptPrinter extends EventTarget implements IDevice {
   private _channel: IDeviceChannel<Uint8Array, Uint8Array>;
 
   private _streamListener?: InputMessageListener<Uint8Array>;
@@ -67,7 +67,7 @@ export class ReceiptPrinter extends EventTarget {
 
   /** Construct a new printer from a given USB device. */
   static fromUSBDevice(device: USBDevice, options: IDeviceCommunicationOptions): ReceiptPrinter {
-    return new this(new UsbDeviceChannel(device, options), options);
+    return new ReceiptPrinter(new UsbDeviceChannel(device, options), options);
   }
 
   constructor(
@@ -118,8 +118,8 @@ export class ReceiptPrinter extends EventTarget {
     // TODO: language detection
     this._commandSet = new EscPos();
     this._streamListener = new InputMessageListener<Uint8Array>(
-      this._channel.getInput,
-      this.parseMessage,
+      this._channel.getInput.bind(this._channel),
+      this.parseMessage.bind(this),
       this._deviceCommOpts.debug,
     );
     this._streamListener.start();
@@ -141,8 +141,7 @@ export class ReceiptPrinter extends EventTarget {
       throw new DeviceNotReadyError("Printer is not ready to communicate.");
     }
 
-    this.logIfDebug('SENDING DOCUMENT TO PRINTER:');
-    this.logResultIfDebug(() => doc.commands.map((c) => c.toDisplay()).join('\n'));
+    this.logResultIfDebug(() => 'SENDING DOCUMENT TO PRINTER:\n' + doc.commands.map((c) => c.toDisplay()).join('\n'));
 
     const state = this._commandSet.getNewTranspileState(this._printerOptions);
     const compiledDocument = transpileDocument(
@@ -180,18 +179,21 @@ export class ReceiptPrinter extends EventTarget {
   private async sendTransactionAndWait(
     transaction: Transaction<Uint8Array>
   ): Promise<boolean> {
-    this.logIfDebug('RAW TRANSACTION:');
-    this.logResultIfDebug(() => new TextDecoder('ascii').decode(transaction.commands));
+    this.logIfDebug('RAW TRANSACTION: ', asciiToDisplay(...transaction.commands));
 
     if (transaction.awaitedCommand !== undefined) {
       this.logIfDebug(`Transaction will await a response to '${transaction.awaitedCommand.toDisplay()}'.`);
+      let awaitResolve;
+      let awaitReject;
       const awaiter: AwaitedCommand = {
         cmd: transaction.awaitedCommand,
         promise: new Promise<boolean>((resolve, reject) => {
-          awaiter.resolve = resolve;
-          awaiter.reject = reject;
+          awaitResolve = resolve;
+          awaitReject = reject;
         })
       };
+      awaiter.reject = awaitReject;
+      awaiter.resolve = awaitResolve;
       this._awaitedCommand = awaiter;
     }
 
@@ -202,6 +204,7 @@ export class ReceiptPrinter extends EventTarget {
     );
 
     // TODO: timeout!
+    await this._awaitedCommand?.promise;
     if (this._awaitedCommand) {
       this.logIfDebug(`Awaiting response to command '${this._awaitedCommand.cmd.name}'...`);
       await promiseWithTimeout(
@@ -221,11 +224,11 @@ export class ReceiptPrinter extends EventTarget {
     let incomplete = false;
 
     do {
-      this.logIfDebug(`Parsing ${msg.length} long message from printer: `, msg);
+      this.logIfDebug(`Parsing ${msg.length} long message from printer: `, asciiToDisplay(...msg));
       if (this._awaitedCommand !== undefined) {
         this.logIfDebug(`Checking if the messages is a response to '${this._awaitedCommand.cmd.name}'.`);
       } else {
-        this.logIfDebug(`Message was a surprise, to be sure, but a welcome one.`);
+        this.logIfDebug(`Not waiting a command. This message was a surprise, to be sure, but a welcome one.`);
       }
 
       const parseResult = this._commandSet.parseMessage(msg, this._awaitedCommand?.cmd);
@@ -247,9 +250,11 @@ export class ReceiptPrinter extends EventTarget {
         switch (m.messageType) {
           case 'ErrorMessage':
             this.sendError(m);
+            this.logIfDebug('Error message sent.');
             break;
           case 'StatusMessage':
             this.sendStatus(m);
+            this.logIfDebug('Status message sent.');
             break;
           case 'SettingUpdateMessage':
             this._printerOptions.update(m);
@@ -260,8 +265,9 @@ export class ReceiptPrinter extends EventTarget {
 
     } while (incomplete === false && msg.length > 0)
 
-    this.logIfDebug(`Returning ${msg.length} bytes.`);
-    return { remainderData: [msg] }
+    this.logIfDebug(`Returning unused ${msg.length} bytes.`);
+    const remainderData = msg.length === 0 ? [] : [msg];
+    return { remainderData }
   }
 
   private sendError(msg: IErrorMessage) {

@@ -13,31 +13,31 @@ export interface IUsbDeviceCommunicationOptions extends IDeviceCommunicationOpti
   requestOptions: USBDeviceRequestOptions;
 }
 
-type DeviceConstructor<T extends {} = {}> =
-  new (
-    device: USBDevice,
-    deviceCommunicationOptions: IUsbDeviceCommunicationOptions
-  ) => T;
+type DeviceGetter<TDevice> = (
+  device: USBDevice,
+  deviceCommunicationOptions: IUsbDeviceCommunicationOptions
+) => TDevice;
 
 export class UsbDeviceManager<TDevice extends IDevice> extends EventTarget {
   private usb: USB;
 
   /** Map of tracked devices to their wrapper objects. */
-  private devices = new Map<USBDevice, TDevice>();
+  private _devices = new Map<USBDevice, TDevice>();
+  public get devices() { return [...this._devices.values()]; }
 
-  private deviceConstructor: DeviceConstructor<TDevice>;
+  private deviceGetter: DeviceGetter<TDevice>;
 
   /** Communication behavior when communicating with devices. */
   public deviceCommunicationOptions: IUsbDeviceCommunicationOptions;
 
   constructor(
     navigatorUsb: USB,
-    deviceConstructor: DeviceConstructor<TDevice>,
+    deviceConstructor: DeviceGetter<TDevice>,
     commOpts: IUsbDeviceCommunicationOptions
   ) {
     super();
     this.usb = navigatorUsb;
-    this.deviceConstructor = deviceConstructor;
+    this.deviceGetter = deviceConstructor;
     this.deviceCommunicationOptions = commOpts;
 
     this.usb.addEventListener('connect', this.handleConnect.bind(this));
@@ -60,14 +60,14 @@ export class UsbDeviceManager<TDevice extends IDevice> extends EventTarget {
   /** Ask the user to select a device to connect to. */
   public async promptForNewDevice(options?: USBDeviceRequestOptions): Promise<boolean> {
     try {
-      const device = await this.usb.requestDevice(options);
+      const device = await this.usb.requestDevice(options ?? this.deviceCommunicationOptions.requestOptions);
       await this.handleConnect(new USBConnectionEvent('connect', { device }));
     } catch (e) {
       // User cancelled
       if (
         e instanceof DOMException &&
         e.name === 'NotFoundError' &&
-        e.message === 'No device selected.'
+        e.message.endsWith('No device selected.')
       ) {
         return false;
       }
@@ -78,8 +78,8 @@ export class UsbDeviceManager<TDevice extends IDevice> extends EventTarget {
 
   /** Disconnect then reconnect all devices */
   public async forceReconnect() {
-    const oldList = Array.from(this.devices.values());
-    this.devices.clear();
+    const oldList = Array.from(this._devices.values());
+    this._devices.clear();
     await Promise.all([...oldList].map(async (value) => value.dispose()));
 
     const newDevices = await this.usb.getDevices();
@@ -93,13 +93,13 @@ export class UsbDeviceManager<TDevice extends IDevice> extends EventTarget {
   /** Handler for device connection events. */
   public async handleConnect({ device }: USBConnectionEvent): Promise<void> {
     // Only handle registration if we aren't already tracking a device
-    if (!this.devices.has(device)) {
-      const dev = new this.deviceConstructor(device, this.deviceCommunicationOptions);
-      this.devices.set(device, dev);
+    if (!this._devices.has(device)) {
+      const dev = this.deviceGetter(device, this.deviceCommunicationOptions);
+      this._devices.set(device, dev);
     }
 
     // Can't be undefined, we just set it!
-    const dev = this.devices.get(device)!;
+    const dev = this._devices.get(device)!;
 
     // Don't notify that the printer exists until it's ready to exist.
     await dev.ready;
@@ -110,11 +110,11 @@ export class UsbDeviceManager<TDevice extends IDevice> extends EventTarget {
 
   /** Handler for device disconnection events. */
   public async handleDisconnect({ device }: USBConnectionEvent): Promise<void> {
-    const dev = this.devices.get(device);
+    const dev = this._devices.get(device);
     if (dev === undefined) {
       return;
     }
-    this.devices.delete(device);
+    this._devices.delete(device);
     await dev.dispose();
 
     const event = new CustomEvent<TDevice>('disconnectedPrinter', { detail: dev });

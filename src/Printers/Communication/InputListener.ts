@@ -2,7 +2,7 @@
 
 import { DeviceCommunicationError } from "./DeviceCommunication.js";
 
-export type DataProvider<TInput> = () => Promise<TInput | DeviceCommunicationError>;
+export type DataProvider<TInput> = () => Promise<TInput[] | DeviceCommunicationError>;
 export type InputHandler<TInput> = (input: TInput[]) => IHandlerResponse<TInput>;
 export interface IHandlerResponse<TInput> {
   remainderData?: TInput[];
@@ -21,11 +21,18 @@ export class InputMessageListener<TInput> {
           break;
         }
 
-        aggregate.push(data);
+        if (data.length === 0) {
+          continue;
+        }
+
+        aggregate.push(...data);
         this.logIfDebug(`Got data from provider, now has ${aggregate.length} items in receive buffer. Data: `, data);
+
         // The handler determines if what we got was sufficient, or if we need more.
         const handleResult = this._inputHandler(aggregate);
-        this.logIfDebug(`Input handler provided a ${handleResult.remainderData?.length ?? 0} length incomplete buffer.`);
+        if (handleResult.remainderData !== undefined && handleResult.remainderData.length !== 0) {
+          this.logIfDebug(`Input handler provided a ${handleResult.remainderData.length} length incomplete buffer.`);
+        }
 
         // The handler is not required to be stateful, this is instead.
         // The handler  may indicate more data is expected by returning incomplete
@@ -36,7 +43,7 @@ export class InputMessageListener<TInput> {
     })
     .catch((reason) => {
       // TODO: Better logging?
-      this.logIfDebug(`Device stream listener stopped listening`, reason);
+      this.logIfDebug(`Device stream listener stopped listening unexpectedly.`, reason);
     });
   }
 

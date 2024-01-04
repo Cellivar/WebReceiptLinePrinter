@@ -79,7 +79,7 @@ function splitTransactions<TOutput>(
   effects: Cmds.CommandEffectFlags
 } {
   const effects = new Cmds.CommandEffectFlags();
-  const transactions: PrecompiledTransaction[] = [{ commands: [] }];
+  const transactions: PrecompiledTransaction[] = [];
   let currentTrans: Cmds.IPrinterCommand[] = [];
 
   // We may need to add new commands while iterating, create a stack.
@@ -94,13 +94,13 @@ function splitTransactions<TOutput>(
     if (yetMoreCommands.length > 0) {
       // The command set gave us fun new commands to deal with instead of the
       // current one. Add those to the stack and drop the current one.
-      yetMoreCommands.map(c => commandStack.push(c));
+      yetMoreCommands.toReversed().map(c => commandStack.push(c));
       continue;
     }
 
     // Record the command in the transpile buffer.
-    transactions.at(-1)?.commands.push(command);
-    command.effectFlags.forEach(effects.add);
+    currentTrans.push(command);
+    command.effectFlags.forEach(f => effects.add(f));
 
     if (command.effectFlags.has("waitsForResponse")) {
       // This command expects the printer to provide feedback. We should pause

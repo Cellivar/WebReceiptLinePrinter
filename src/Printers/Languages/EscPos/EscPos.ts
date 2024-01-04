@@ -1,5 +1,4 @@
 import * as Cmds from "../../../Documents/index.js";
-import { PrinterCommandLanguages } from "../index.js";
 import { type EscPosDocState } from './index.js';
 import { clampToRange, repeat } from "../../../index.js";
 import { handleEscPosMessage } from "./Messages.js";
@@ -119,7 +118,7 @@ export class EscPos extends RawCommandSet {
   public expandCommand(cmd: Cmds.IPrinterCommand): Cmds.IPrinterCommand[] {
     switch (cmd.type) {
       default:
-        return [cmd];
+        return [];
       case "GetConfiguration":
         // TODO: Dynamically figure out what subcommands to send to the printer
         // TODO: Add support for model-specific info?
@@ -127,10 +126,9 @@ export class EscPos extends RawCommandSet {
         // back-and-forth steps.
         return [
           new TransmitPrinterId('TypeID'),
-          // TODO: Is this even useful?
-          //new TransmitPrinterId('ModelID'),
+          new TransmitPrinterId('InfoBMakerName'),
+          new TransmitPrinterId('InfoBModelName'),
           new TransmitPrinterId('InfoBSerialNo'),
-          new TransmitPrinterId('InfoBFontLanguage'),
         ];
       case "GetStatus":
         // TODO: Dynamically figure out what subcommands to send to the printer
@@ -394,4 +392,3 @@ export class EscPos extends RawCommandSet {
 }
 
 export const awaitsEffect = new Cmds.CommandEffectFlags(['waitsForResponse']);
-export const EscPosLang = new PrinterCommandLanguages([EscPos]);

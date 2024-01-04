@@ -2,7 +2,7 @@ import * as Cmds from '../../../Documents/index.js'
 import { MessageParsingError, type IMessageHandlerResult } from "../../Communication/index.js";
 import { AsciiCodeNumbers } from '../../Codepages/index.js';
 import { parseAutoStatusBack } from './AutoStatusBack.js';
-import { TransmitPrinterId, parseTransmitPrinterId } from './PrinterIdCmd.js';
+import { TransmitPrinterId, parseTransmitPrinterId } from './index.js';
 import { TransmitPrinterStatus, parseTransmitPrinterStatus } from './PrinterStatusCmd.js';
 
 /**
@@ -24,7 +24,7 @@ export function sliceToNull(msg: Uint8Array): {
 
   return {
     sliced: msg.slice(0, idx + 1),
-    remainder: msg.slice(idx),
+    remainder: msg.slice(idx + 1),
   };
 }
 
@@ -80,9 +80,9 @@ function getMessageCandidate(firstByte: number): MessageCandidate {
   // we check in to ensure we don't confuse candidates.
   switch (true) {
     // XON/XOFF must be an exact match, guaranteed to conflict with all other first bytes.
-    case (firstByte & MessageCandidates.XON) == MessageCandidates.XON:
+    case (firstByte ^ MessageCandidates.XON) == MessageCandidates.XON:
       return 'xon';
-    case (firstByte & MessageCandidates.XOFF) == MessageCandidates.XOFF:
+    case (firstByte ^ MessageCandidates.XOFF) == MessageCandidates.XOFF:
       return 'xoff';
     // Check bit 4
     case (maybeResponse & MessageCandidates.Response) == MessageCandidates.Response:
@@ -104,11 +104,6 @@ type MessageHandlerDelegate = (
   msg: Uint8Array,
   sentCommand: Cmds.IPrinterCommand
 ) => IMessageHandlerResult<Uint8Array>;
-
-const messageHandlerMap = new Map<symbol | Cmds.CommandType, MessageHandlerDelegate>([
-  [TransmitPrinterId.typeE, parseTransmitPrinterId],
-  [TransmitPrinterStatus.typeE, parseTransmitPrinterStatus],
-]);
 
 function hex(num: number) {
   return "0x" + (num + 0x100).toString(16).substring(-2);
@@ -184,23 +179,30 @@ export function handleEscPosMessage(
         );
       }
 
+      const messageHandlerMap = new Map<symbol | Cmds.CommandType, MessageHandlerDelegate>([
+        [TransmitPrinterId.typeE, parseTransmitPrinterId],
+        [TransmitPrinterStatus.typeE, parseTransmitPrinterStatus],
+      ]);
+
       // Since we know this is a command response and we have a command to check
       // we can kick this out to a lookup function. That function will need to
       // do the slicing for us as we don't know how long the message might be.
       const cmdRef = sentCommand.type === 'CustomCommand'
         ? (sentCommand as Cmds.IPrinterExtendedCommand).typeExtended
         : sentCommand.type;
-        const handler = messageHandlerMap.get(cmdRef);
-        if (handler === undefined) {
-          throw new MessageParsingError(
-            `Command '${sentCommand.name}' has no message handler and should not have been awaited for message ${hex(firstByte)}. This is a bug in the library.`,
-            msg
-          )
-        }
+      const handler = messageHandlerMap.get(cmdRef);
+      if (handler === undefined) {
+        throw new MessageParsingError(
+          `Command '${sentCommand.name}' has no message handler and should not have been awaited for message ${hex(firstByte)}. This is a bug in the library.`,
+          msg
+        )
+      }
 
       const handled = handler(msg, sentCommand);
       result.messages.push(...handled.messages);
       result.remainder = handled.remainder;
+      result.messageIncomplete = handled.messageIncomplete;
+      result.messageMatchedExpectedCommand = handled.messageMatchedExpectedCommand;
       break;
 
     case 'xoff':

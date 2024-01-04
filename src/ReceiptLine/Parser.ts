@@ -412,7 +412,7 @@ function columnsToLine(
  * @param {IMediaOptions} mediaOptions Label media configuration
  * @returns {IDocument} PCL document to give to a printer.
  */
-export function transform(doc: string, mediaOptions: IMediaOptions): Cmds.IDocument {
+export function parseReceiptLineToDocument(doc: string, mediaOptions: IMediaOptions): Cmds.IDocument {
   // initialize state variables
   const state: parseState = {
     wrap: true,

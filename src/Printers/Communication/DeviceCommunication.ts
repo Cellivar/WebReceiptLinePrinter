@@ -61,7 +61,7 @@ export interface IDeviceChannel<TOutput, TInput> {
   sendCommands(commandBuffer: TOutput): Promise<DeviceCommunicationError | undefined>;
 
   /** Request data from the device. */
-  getInput(): Promise<TInput | DeviceCommunicationError>;
+  getInput(): Promise<TInput[] | DeviceCommunicationError>;
 }
 
 /** Error indicating communication with the device has failed. */

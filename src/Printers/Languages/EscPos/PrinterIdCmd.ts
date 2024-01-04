@@ -1,9 +1,10 @@
 import * as Cmds from "../../../Documents/index.js";
 import { MessageParsingError, type IMessageHandlerResult, type ISettingUpdateMessage } from "../../Communication/index.js";
 import { AsciiCodeNumbers } from "../../Codepages/index.js";
-import { EscPosLang, awaitsEffect } from "./EscPos.js";
+import { EscPos, awaitsEffect } from "./EscPos.js";
 import { hasFlag, sliceToNull, type EscPosDocState } from "./index.js";
 import type { CommandSet } from "../../../Documents/CommandSet.js";
+import { PrinterCommandLanguages } from "../index.js";
 
 export type TransmitPrinterIdCmd
   = 'ModelID'   // 1, 49
@@ -37,7 +38,7 @@ export const transmitPrinterIdCmdMap: Record<TransmitPrinterIdCmd, number> = {
 export class TransmitPrinterId implements Cmds.IPrinterExtendedCommand {
   public static typeE = Symbol("TransmitPrinterId");
   typeExtended                 = TransmitPrinterId.typeE;
-  commandLanguageApplicability = EscPosLang;
+  commandLanguageApplicability = new PrinterCommandLanguages([EscPos]);
   name                         = 'Transmit Printer ID'
   type                         = "CustomCommand" as const;
   effectFlags                  = awaitsEffect;
@@ -183,6 +184,12 @@ export function parseTransmitPrinterId(
         result.messageIncomplete = true;
         break;
       }
+      if (infoAPacket.sliced.length === 2) {
+        // Valid packet, no content. Indicates printer is busy working on it.
+        // Discard the packet and wait for more.
+        result.messageIncomplete = true;
+        result.remainder = infoAPacket.remainder;
+      }
 
       // TODO: Handle Printer Info A!
       // setPrinterInfoA(infoAPacket.sliced, command.subcommand, config);
@@ -196,6 +203,12 @@ export function parseTransmitPrinterId(
       if (infoBPacket.sliced.length === 0) {
         result.messageIncomplete = true;
         break;
+      }
+      if (infoBPacket.sliced.length === 2) {
+        // Valid packet, no content. Indicates printer is busy working on it.
+        // Discard the packet and wait for more.
+        result.messageIncomplete = true;
+        result.remainder = infoBPacket.remainder;
       }
 
       setPrinterInfoB(infoBPacket.sliced, command.subcommand, config);

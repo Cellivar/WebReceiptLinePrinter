@@ -1,11 +1,10 @@
 import * as Cmds from "../../../Documents/index.js";
 import { MessageParsingError, type IErrorMessage, type IMessageHandlerResult, type IStatusMessage } from "../../Communication/index.js";
 import type { CommandSet } from "../../../Documents/CommandSet.js";
-import { AsciiCodeNumbers, EscPos, PrinterCommandLanguages } from "../index.js";
-import { hasFlag, type EscPosDocState } from "./index.js";
+import { AsciiCodeNumbers, PrinterCommandLanguages } from "../index.js";
+import { hasFlag, type EscPosDocState, EscPos } from "./index.js";
 
 const awaitsEffect = new Cmds.CommandEffectFlags(['waitsForResponse']);
-const EscPosLang = new PrinterCommandLanguages([EscPos]);
 
 export type TransmitPrinterStatusCmd
   = 'PaperSensorStatus'
@@ -21,7 +20,7 @@ export const transmitPrinterStatusCmdMap: Record<TransmitPrinterStatusCmd, numbe
 export class TransmitPrinterStatus implements Cmds.IPrinterExtendedCommand {
   public static typeE = Symbol('TransmitPrinterStatus');
   typeExtended                 = TransmitPrinterStatus.typeE;
-  commandLanguageApplicability = EscPosLang;
+  commandLanguageApplicability = new PrinterCommandLanguages([EscPos]);
   name                         = 'Transmit Printer Status';
   type                         = "CustomCommand" as const;
   effectFlags                  = awaitsEffect;
