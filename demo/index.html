@@ -75,89 +75,66 @@
 
     <!-- Here's some actual demo code. Note that it is typescript, not javascript. -->
     <script type="text/typescript" id="cool_demo_code_to_show_off_the_lib">
-        import {
-          UsbDeviceManager,
-          ReceiptPrinter,
-          parseReceiptLineToDocument,
-          IDocument,
-          TestPrint,
-          Text,
-          HorizontalRule,
-          Newline,
-          Cut,
-          TextDraw,
-        } from 'web-receiptline-printer';
-        //import {
-        //    BitmapGRF,
-        //    DarknessPercent,
-        //    IDocument,
-        //    ILabelDocumentBuilder,
-        //    PrinterUsbManager,
-        //    PrinterCommunicationOptions,
-        //    PrintSpeed,
-        //    Printer,
-        //    ReadyToPrintDocuments
-        //} from 'web-receiptline-printer';
+      import * as WebReceipt from 'web-receiptline-printer';
 
-        // For this demo we're going to make use of the USB printer manager
-        // so it can take care of concerns like the USB connect and disconnect events.
-        const printerMgr = new UsbDeviceManager<ReceiptPrinter>(
-          window.navigator.usb,
-          ReceiptPrinter.fromUSBDevice,
-          {
-            // Enable debugging, so the dev console can fill up with interesting messages!
-            debug: true,
-            requestOptions: {
-              // Limit the USB devices we try to connect to.
-              filters: [
-                {
-                  vendorId: 0x04B8, // Epson
-                  //productId: 0x0202, // TM-T88V
-                }
-              ]
-            }
+      // For this demo we're going to make use of the USB printer manager
+      // so it can take care of concerns like the USB connect and disconnect events.
+      const printerMgr = new WebReceipt.UsbDeviceManager<WebReceipt.ReceiptPrinter>(
+        window.navigator.usb,
+        WebReceipt.ReceiptPrinter.fromUSBDevice,
+        {
+          // Enable debugging, so the dev console can fill up with interesting messages!
+          debug: true,
+          requestOptions: {
+            // Limit the USB devices we try to connect to.
+            filters: [
+              {
+                vendorId: 0x04B8, // Epson
+                //productId: 0x0202, // TM-T88V
+              }
+            ]
           }
-        );
+        }
+      );
 
-        // We'll wire up some basic event listeners to the printer manager.
-        // First, a button to prompt a user to add a printer.
-        const addPrinterBtn = document.getElementById('addprinter');
-        addPrinterBtn.addEventListener('click', async () => printerMgr.promptForNewDevice());
+      // We'll wire up some basic event listeners to the printer manager.
+      // First, a button to prompt a user to add a printer.
+      const addPrinterBtn = document.getElementById('addprinter');
+      addPrinterBtn.addEventListener('click', async () => printerMgr.promptForNewDevice());
 
-        // Next a button to manually refresh all printers, just in case.
-        const refreshPrinterBtn = document.getElementById('refreshPrinters');
-        refreshPrinterBtn.addEventListener('click', async () => printerMgr.forceReconnect());
+      // Next a button to manually refresh all printers, just in case.
+      const refreshPrinterBtn = document.getElementById('refreshPrinters');
+      refreshPrinterBtn.addEventListener('click', async () => printerMgr.forceReconnect());
 
-        // Next we wire up some events on the device manager itself.
-        printerMgr.addEventListener('connectedDevice', ({ detail }) => {
-            const printer = detail;
-            const config = printer.printerOptions;
-            console.log(config);
-            console.log(`Printer is a ${config.model} by ${config.manufacturer}, serial ${config.serialNumber}`);
-            console.log(`Printer has ${config.charactersPerLine} characters per line`);
-            console.log(`Printer ${config.hasAutocutter ? 'does' : 'does not'} have an autocutter.`);
-            console.log(`Printer ${config.hasMultiByteSupport ? 'does' : 'does not'} support multi-byte language ${config.fontLanguageSupport}.`);
-        });
-        // There's also an event that will tell you when a printer disconnects.
-        printerMgr.addEventListener('disconnectedDevice', ({ detail }) => {
-            const printer = detail;
-            // TODO: Hide appropriate interface.
-            console.log(`Lost printer ${printer.printerModel} (${printer.printerOptions.serialNumber}).`);
-        });
+      // Next we wire up some events on the device manager itself.
+      printerMgr.addEventListener('connectedDevice', ({ detail }) => {
+        const printer = detail;
+        const config = printer.printerOptions;
+        console.log(`Printer is a ${config.model} by ${config.manufacturer}, serial ${config.serialNumber}`);
+        console.log(`Printer has ${config.charactersPerLine} characters per line`);
+      });
 
-        // When the browser first loaded the page any previously connected printers would have caused
-        // a connection event. Our listener wasn't listening yet so missed it.
-        // It's good practice to force a reconnect once your event handlers are ready.
-        // We're going to skip this for now though, because we want it to happen after the app is ready.
-        //await printerMgr.forceReconnect();
+      // There's also an event that will tell you when a printer disconnects.
+      printerMgr.addEventListener('disconnectedDevice', ({ detail }) => {
+        const printer = detail;
+        // TODO: Hide appropriate interface.
+        console.log(`Lost printer ${printer.printerModel} (${printer.printerOptions.serialNumber}).`);
+      });
 
-        // And that's all there is to setup! The page can now talk to printers.
-        // The rest of this demo is an example of a basic receipt printer app.
+      // The browser will remember printers that were previously connected, and
+      // when the page loads it will automatically reconnect to them. Our code wasn't
+      // running yet though, so we missed it. It's good practice to force a
+      // reconnect once your event handlers are ready. Like this:
+      //await printerMgr.forceReconnect();
+      // Before we do that in this demo we first want to set up the UI app.
+
+      // And that's all there is to setup! The page can now talk to printers.
+      // The rest of this demo is an example of a basic receipt printer app.
 
         // The app's logic is wrapped in a class just for ease of reading.
         class BasicDocumentPrinterApp {
             constructor(
-                manager: UsbDeviceManager<ReceiptPrinter>,
+                manager: WebReceipt.UsbDeviceManager<WebReceipt.ReceiptPrinter>,
                 btnContainer: HTMLElement,
                 labelForm: HTMLElement,
                 labelFormInstructions: HTMLElement,
@@ -217,14 +194,14 @@
             private labelFormInstructions: HTMLElement;
             private configModal: HTMLElement;
             private fontName: string;
-            private manager: UsbDeviceManager<ReceiptPrinter>;
-            get printers(): readonly ReceiptPrinter[] {
+            private manager: WebReceipt.UsbDeviceManager<ReceiptPrinter>;
+            get printers(): readonly WebReceipt.ReceiptPrinter[] {
                 return this.manager.devices;
             }
 
             // Track which printer is currently selected for operations
             private _activePrinter = 0;
-            get activePrinter(): Printer {
+            get activePrinter(): WebReceipt.ReceiptPrinter {
                 return this._activePrinter < 0 || this._activePrinter > this.printers.length
                     ? null
                     : this.printers[this._activePrinter];
@@ -241,7 +218,7 @@
             }
 
             /** Display the configuration for a printer. */
-            public showConfigModal(printer: Printer, printerIdx: number) {
+            public showConfigModal(printer: WebReceipt.ReceiptPrinter, printerIdx: number) {
                 if (printer == null) {
                     return;
                 }
@@ -291,7 +268,7 @@
             }
 
             /** Add a printer's button UI to the list of printers. */
-            private drawPrinterButton(printer: Printer, idx: number) {
+            private drawPrinterButton(printer: WebReceipt.ReceiptPrinter, idx: number) {
                 const highlight = this._activePrinter == idx ? "var(--bs-blue)" : "transparent";
 
                 // Generate a new label printer button for the given printer.
@@ -337,7 +314,7 @@
                         const printer = this.printers[printerIdx];
                         const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
                         const rawReceiptline = textarea.value;
-                        const doc = parseReceiptLineToDocument(rawReceiptline, printer.printerOptions);
+                        const doc = WebReceipt.parseReceiptLineToDocument(rawReceiptline, printer.printerOptions);
                         await printer.sendDocument(doc);
                     });
                 document.getElementById(`printer_${idx}`)
@@ -358,7 +335,7 @@
                         const printerIdx = e.currentTarget.dataset.printerIdx as number;
                         const printer = this.printers[printerIdx];
                         const doc = {
-                          commands: [new TestPrint('rolling')]
+                          commands: [new WebReceipt.TestPrint('rolling')]
                         };
                         await printer.sendDocument(doc);
                     });
@@ -368,7 +345,7 @@
                         const printerIdx = e.currentTarget.dataset.printerIdx as number;
                         const printer = this.printers[printerIdx];
                         const doc = {
-                          commands: [new TestPrint('printerStatus')]
+                          commands: [new WebReceipt.TestPrint('printerStatus')]
                         };
                         await printer.sendDocument(doc);
                     });
@@ -484,10 +461,10 @@
 
         // With the app class defined we can run it.
         // First up collect the basic structure of the app
-        const btnContainer = document.getElementById("printerlist");
-        const labelForm = document.getElementById("labelForm");
+        const btnContainer          = document.getElementById("printerlist");
+        const labelForm             = document.getElementById("labelForm");
         const labelFormInstructions = document.getElementById("labelFormInstructions");
-        const configModal = document.getElementById("printerOptionModal");
+        const configModal           = document.getElementById("printerOptionModal");
 
         // And feed that into the app class to manage the elements
         const app = new BasicDocumentPrinterApp(printerMgr, btnContainer, labelForm, labelFormInstructions, configModal);
