@@ -81,6 +81,11 @@
           parseReceiptLineToDocument,
           IDocument,
           TestPrint,
+          Text,
+          HorizontalRule,
+          Newline,
+          Cut,
+          TextDraw,
         } from 'web-receiptline-printer';
         //import {
         //    BitmapGRF,
@@ -126,9 +131,9 @@
         // Next we wire up some events on the device manager itself.
         printerMgr.addEventListener('connectedDevice', ({ detail }) => {
             const printer = detail;
-            console.log('New printer is a', printer.printerModel);
-            const config = printer.printerConfig;
-            console.log(`Printer is a ${config.model} by ${config.manufacturer}, serial ${config.serialNumber}, firmware ${config.firmware}.`);
+            const config = printer.printerOptions;
+            console.log(config);
+            console.log(`Printer is a ${config.model} by ${config.manufacturer}, serial ${config.serialNumber}`);
             console.log(`Printer has ${config.charactersPerLine} characters per line`);
             console.log(`Printer ${config.hasAutocutter ? 'does' : 'does not'} have an autocutter.`);
             console.log(`Printer ${config.hasMultiByteSupport ? 'does' : 'does not'} support multi-byte language ${config.fontLanguageSupport}.`);
@@ -137,7 +142,7 @@
         printerMgr.addEventListener('disconnectedDevice', ({ detail }) => {
             const printer = detail;
             // TODO: Hide appropriate interface.
-            console.log(`Lost printer ${printer.printerModel} (${printer.printerConfig.serialNumber}).`);
+            console.log(`Lost printer ${printer.printerModel} (${printer.printerOptions.serialNumber}).`);
         });
 
         // When the browser first loaded the page any previously connected printers would have caused
@@ -226,13 +231,13 @@
             }
             set activePrinterIndex(printerIdx: number) {
                 this._activePrinter = printerIdx;
-                //this.redrawTextCanvas();
+                this.redrawTextCanvas();
             }
 
             /** Initialize the app */
             public async init() {
                 this.redrawPrinterButtons();
-                //this.redrawTextCanvas();
+                this.redrawTextCanvas();
             }
 
             /** Display the configuration for a printer. */
@@ -240,7 +245,7 @@
                 if (printer == null) {
                     return;
                 }
-                const config = printer.printerConfig;
+                const config = printer.printerOptions;
 
                 // Translate the available speeds to options to be selected
                 const speedSelect = this.configModal.querySelector('#modalSpeed');
@@ -297,10 +302,10 @@
         style="background: linear-gradient(to right, ${highlight}, ${highlight}, grey, grey);">
         <div class="col-sm-8">
             <div class="col-sm-12">
-                <span data-serial="${printer.printerConfig.serialNumber}">${printer.printerConfig.serialNumber}</span>
+                <span data-serial="${printer.printerOptions.serialNumber}">${printer.printerOptions.serialNumber}</span>
             </div>
             <div class="col-sm-12">
-                <span>${printer.printerConfig.labelWidthInches}" x ${printer.printerConfig.labelHeightInches}"</span>
+                <span>${printer.printerOptions.charactersPerLine} cpl</span>
             </div>
         </div>
         <div class="d-flex flex-row justify-content-end">
@@ -313,14 +318,8 @@
                         <li><a id="printtest_${idx}" data-printer-idx="${idx}" class="dropdown-item" href="#">
                             Print test page
                         </a></li>
-                        <li><a id="feedlabel_${idx}" data-printer-idx="${idx}" class="dropdown-item" href="#">
-                            Feed blank label
-                        </a></li>
-                        <li><a id="configprinter_${idx}" data-printer-idx="${idx}" class="dropdown-item" href="#">
-                            Set label config
-                        </a></li>
                         <li><a id="printconfig_${idx}" data-printer-idx="${idx}" class="dropdown-item" href="#">
-                            Print config on labels
+                            Print config
                         </a></li>
                     </ul>
                 </div>
@@ -336,7 +335,9 @@
                         e.preventDefault();
                         const printerIdx = e.currentTarget.dataset.printerIdx as number;
                         const printer = this.printers[printerIdx];
-                        const doc = this.addCanvasImageToLabelDoc(printer.getLabelDocument());
+                        const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
+                        const rawReceiptline = textarea.value;
+                        const doc = parseReceiptLineToDocument(rawReceiptline, printer.printerOptions);
                         await printer.sendDocument(doc);
                     });
                 document.getElementById(`printer_${idx}`)
@@ -349,7 +350,7 @@
                         }
                         this.activePrinterIndex = printerIdx;
                         this.redrawPrinterButtonHighlights();
-                        //this.redrawTextCanvas();
+                        this.redrawTextCanvas();
                     });
                 document.getElementById(`printtest_${idx}`)
                     .addEventListener('click', async (e) => {
@@ -357,16 +358,8 @@
                         const printerIdx = e.currentTarget.dataset.printerIdx as number;
                         const printer = this.printers[printerIdx];
                         const doc = {
-                          commands: [new TestPrint()]
+                          commands: [new TestPrint('rolling')]
                         };
-                        await printer.sendDocument(doc);
-                    });
-                document.getElementById(`feedlabel_${idx}`)
-                    .addEventListener('click', async (e) => {
-                        e.preventDefault();
-                        const printerIdx = e.currentTarget.dataset.printerIdx as number;
-                        const printer = this.printers[printerIdx];
-                        const doc = ReadyToPrintDocuments.feedLabelDoc;
                         await printer.sendDocument(doc);
                     });
                 document.getElementById(`printconfig_${idx}`)
@@ -374,47 +367,28 @@
                         e.preventDefault();
                         const printerIdx = e.currentTarget.dataset.printerIdx as number;
                         const printer = this.printers[printerIdx];
-                        const doc = ReadyToPrintDocuments.printerPrintConfigDoc;
+                        const doc = {
+                          commands: [new TestPrint('printerStatus')]
+                        };
                         await printer.sendDocument(doc);
                     });
-                document.getElementById(`configprinter_${idx}`)
-                    .addEventListener('click', async (e) => {
-                        e.preventDefault();
-                        const printerIdx = e.currentTarget.dataset.printerIdx as number;
-                        const printer = this.printers[printerIdx];
-                        this.showConfigModal(printer, printerIdx);
-                    });
-            }
-
-            /** Parse the text area as a ReceiptLine document. */
-            private getReceiptLineDoc(): IDocument {
-              const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
-              const rawReceiptline = textarea.value;
-              return parseReceiptLineToDocument(rawReceiptline);
             }
 
             /** Redraw the text canvas size according to the printer. */
-            // private redrawTextCanvas() {
-            //                 const printer = this.activePrinter;
-            //                 if (printer == null) {
-            //                     this.labelForm.classList.add('d-none');
-            //                     this.labelFormInstructions.classList.remove('d-none');
-            //                     return;
-            //                 } else {
-            //                     this.labelForm.classList.remove('d-none');
-            //                     this.labelFormInstructions.classList.add('d-none');
-            //                 }
+            private redrawTextCanvas() {
+              const printer = this.activePrinter;
+              if (printer == null) {
+                  this.labelForm.classList.add('d-none');
+                  this.labelFormInstructions.classList.remove('d-none');
+                  return;
+              } else {
+                  this.labelForm.classList.remove('d-none');
+                  this.labelFormInstructions.classList.add('d-none');
+              }
 
-            //                 // Resize the canvas to match the label size.
-            //                 const canvas = this.labelForm.querySelector("#labelCanvas") as HTMLCanvasElement;
-            //                 // Add a small margin as printer alignment is not exact.
-            //                 canvas.width = printer.printerConfig.labelWidthDots - 2;
-            //                 canvas.height = printer.printerConfig.labelHeightDots - 2;
-
-            //                 const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
-            //                 textarea.value = "Enter your label text here!";
-            //                 this.renderTextForm(null);
-            //             }
+              const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
+              textarea.value = "Enter your ReceiptLine text here!";
+            }
 
             /** Render the text form to the canvas */
             // private renderTextForm(e: KeyboardEvent) {
@@ -579,7 +553,7 @@
                 <div class="col-9">
                     <form id="labelForm" action="javascript:void(0);" class="d-none">
                         <h5>Input</h5>
-                        <textarea id="labelFormText" name="labelText" cols="48" rows="100" wrap="hard"
+                        <textarea id="labelFormText" name="labelText" cols="70" rows="50"
                             style="font-family: monospace; resize: both;"
                             placeholder="Enter your ReceiptLine receipt here!"></textarea>
                     </form>

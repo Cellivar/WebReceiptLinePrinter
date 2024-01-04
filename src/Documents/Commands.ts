@@ -85,10 +85,14 @@ export class Newline extends BasicCommand {
   constructor() { super( ['feedsPaper']); }
 }
 
+export type TestPrintType = 'hexadecimal' | 'rolling' | 'printerStatus'
+
 export class TestPrint extends BasicCommand {
   name = 'Run a test print';
   type: CommandType = 'TestPrint';
-  constructor() { super(['feedsPaper']); }
+  constructor(public readonly printType: TestPrintType = 'rolling') {
+    super(['feedsPaper', 'actuatesCutter', 'lossOfConnection']);
+  }
 }
 
 export class GetConfiguration extends BasicCommand {
@@ -111,7 +115,11 @@ export class Cut implements IPrinterCommand {
   effectFlags = new CommandEffectFlags(["actuatesCutter", "feedsPaper"]);
   toDisplay() { return `${this.name} ${this.cutType}.`; }
 
-  constructor(public readonly cutType: CutType = "Partial") {}
+  constructor(
+    public readonly cutType: CutType = "Partial",
+    /** Number of character lines between the print head and cutter. */
+    public readonly bladeOffsetLines = 4
+  ) {}
 }
 
 export type PulsePin = "Pin2" | "Pin5"
@@ -298,7 +306,7 @@ export class HorizontalRule implements IPrinterCommand {
   type = 'HorizontalRule' as const;
   effectFlags = NoEffect;
   toDisplay() { return this.name; }
-  
+
   constructor (
     public readonly width?: number,
     public readonly lineStyle: LineStyle = 'single') {}

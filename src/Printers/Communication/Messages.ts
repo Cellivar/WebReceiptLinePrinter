@@ -1,4 +1,4 @@
-import { WebReceiptLineError } from "../../index.js";
+import { WebReceiptLineError, type IDeviceInformation } from "../../index.js";
 
 export type PrinterMessage
   = ISettingUpdateMessage
@@ -63,5 +63,14 @@ export class MessageParsingError extends WebReceiptLineError {
   constructor(message: string, receivedMessage: Uint8Array) {
     super(message);
     this.receivedMessage = receivedMessage;
+  }
+}
+
+export function deviceInfoToOptionsUpdate(deviceInfo: IDeviceInformation): ISettingUpdateMessage {
+  return {
+    messageType: 'SettingUpdateMessage',
+    modelName: deviceInfo.productName,
+    serialNumber: deviceInfo.serialNumber,
+    manufacturerName: deviceInfo.manufacturerName,
   }
 }

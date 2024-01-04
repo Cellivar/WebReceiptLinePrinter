@@ -630,14 +630,9 @@ function createLine(
       case 'initialize':
         // append commands to start rules
         lineCmds.push(
-          // printer.command.normal() +
-          // printer.command.area(left, width, right) +
-          // printer.command.align(0) +
-          // printer.command.vrstart(widths) +
-          // printer.command.vrlf(true)
           ...resetFormattingCmds(left, width, right),
           new Cmds.TextDraw(...verticalRuleEdge(widths, 'top').map(getCharacterFromLinePoints)),
-          new Cmds.SetLineSpacing(0),
+          new Cmds.SetLineSpacing(1),
           new Cmds.Newline()
         );
         state.nextRuleOperation = 'addVertical';
@@ -650,11 +645,6 @@ function createLine(
         const minRightMargin = Math.min(right, state.rules.right);
         const maxSpace = mediaOptions.charactersPerLine - minLeftMargin - minRightMargin;
         lineCmds.push(
-          // printer.command.normal() +
-          // printer.command.area(l, printer.cpl - l - r, r) +
-          // printer.command.align(0) +
-          // printer.command.vrhr(state.rules.widths, widths, m, m + w) +
-          // printer.command.lf()
           ...resetFormattingCmds(minLeftMargin, maxSpace, minRightMargin),
           new Cmds.TextDraw(
             ...verticalRuleWithHorizontalRule(

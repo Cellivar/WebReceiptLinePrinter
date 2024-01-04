@@ -20,7 +20,17 @@ export interface IUSBDeviceInformation extends IDeviceInformation {
 
 function deviceToInfo(device: USBDevice): IUSBDeviceInformation {
   return {
-    ...device
+    deviceClass          : device.deviceClass,
+    deviceProtocol       : device.deviceProtocol,
+    deviceSubclass       : device.deviceSubclass,
+    deviceVersionMajor   : device.deviceVersionMajor,
+    deviceVersionMinor   : device.deviceVersionMinor,
+    deviceVersionSubminor: device.deviceVersionSubminor,
+    productId            : device.productId,
+    vendorId             : device.vendorId,
+    manufacturerName     : device.manufacturerName,
+    productName          : device.productName,
+    serialNumber         : device.serialNumber,
   };
 }
 

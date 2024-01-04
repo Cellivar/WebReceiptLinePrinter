@@ -73,44 +73,50 @@ export const enum AsciiCodeNumbers {
 }
 
 export const AsciiToDisplayLookup: Record<AsciiCodeNumbers, string> = {
-  [AsciiCodeNumbers.NUL]: "[NUL]",
-  [AsciiCodeNumbers.SOH]: "[SOH]",
-  [AsciiCodeNumbers.STX]: "[STX]",
-  [AsciiCodeNumbers.ETX]: "[ETX]",
-  [AsciiCodeNumbers.EOT]: "[EOT]",
-  [AsciiCodeNumbers.ENQ]: "[ENQ]",
-  [AsciiCodeNumbers.ACK]: "[ACK]",
-  [AsciiCodeNumbers.BEL]: "[BEL]",
-  [AsciiCodeNumbers.BS]:  "[BS]",
-  [AsciiCodeNumbers.TAB]: "[TAB]",
-  [AsciiCodeNumbers.LF]:  "[LF]",
-  [AsciiCodeNumbers.VT]:  "[VT]",
-  [AsciiCodeNumbers.FF]:  "[FF]",
-  [AsciiCodeNumbers.CR]:  "[CR]",
-  [AsciiCodeNumbers.SO]:  "[SO]",
-  [AsciiCodeNumbers.SI]:  "[SI]",
-  [AsciiCodeNumbers.DLE]: "[DLE]",
-  [AsciiCodeNumbers.DC1]: "[DC1]",
-  [AsciiCodeNumbers.DC2]: "[DC2]",
-  [AsciiCodeNumbers.DC3]: "[DC3]",
-  [AsciiCodeNumbers.DC4]: "[DC4]",
-  [AsciiCodeNumbers.NAK]: "[NAK]",
-  [AsciiCodeNumbers.SYN]: "[SYN]",
-  [AsciiCodeNumbers.ETB]: "[ETB]",
-  [AsciiCodeNumbers.CAN]: "[CAN]",
-  [AsciiCodeNumbers.EM]:  "[EM]",
-  [AsciiCodeNumbers.SUB]: "[SUB]",
-  [AsciiCodeNumbers.ESC]: "[ESC]",
-  [AsciiCodeNumbers.FS]:  "[FS]",
-  [AsciiCodeNumbers.GS]:  "[GS]",
-  [AsciiCodeNumbers.RS]:  "[RS]",
-  [AsciiCodeNumbers.US]:  "[US]",
-  [AsciiCodeNumbers.DEL]: "[DEL]"
+  [AsciiCodeNumbers.NUL]: "NUL",
+  [AsciiCodeNumbers.SOH]: "SOH",
+  [AsciiCodeNumbers.STX]: "STX",
+  [AsciiCodeNumbers.ETX]: "ETX",
+  [AsciiCodeNumbers.EOT]: "EOT",
+  [AsciiCodeNumbers.ENQ]: "ENQ",
+  [AsciiCodeNumbers.ACK]: "ACK",
+  [AsciiCodeNumbers.BEL]: "BEL",
+  [AsciiCodeNumbers.BS]:  "BS",
+  [AsciiCodeNumbers.TAB]: "TAB",
+  [AsciiCodeNumbers.LF]:  "LF",
+  [AsciiCodeNumbers.VT]:  "VT",
+  [AsciiCodeNumbers.FF]:  "FF",
+  [AsciiCodeNumbers.CR]:  "CR",
+  [AsciiCodeNumbers.SO]:  "SO",
+  [AsciiCodeNumbers.SI]:  "SI",
+  [AsciiCodeNumbers.DLE]: "DLE",
+  [AsciiCodeNumbers.DC1]: "DC1",
+  [AsciiCodeNumbers.DC2]: "DC2",
+  [AsciiCodeNumbers.DC3]: "DC3",
+  [AsciiCodeNumbers.DC4]: "DC4",
+  [AsciiCodeNumbers.NAK]: "NAK",
+  [AsciiCodeNumbers.SYN]: "SYN",
+  [AsciiCodeNumbers.ETB]: "ETB",
+  [AsciiCodeNumbers.CAN]: "CAN",
+  [AsciiCodeNumbers.EM]:  "EM",
+  [AsciiCodeNumbers.SUB]: "SUB",
+  [AsciiCodeNumbers.ESC]: "ESC",
+  [AsciiCodeNumbers.FS]:  "FS",
+  [AsciiCodeNumbers.GS]:  "GS",
+  [AsciiCodeNumbers.RS]:  "RS",
+  [AsciiCodeNumbers.US]:  "US",
+  [AsciiCodeNumbers.DEL]: "DEL"
+}
+
+export function hex(num: number) {
+  return "0x" + (num + 0x100).toString(16).slice(-2);
 }
 
 export function asciiToDisplay(...codes: number[]) {
   return codes.map(c => {
-    const controlcode = c < 0x20 ? AsciiToDisplayLookup[c as AsciiCodeNumbers] : '';
-    return ("0x" + (c + 0x100).toString(16).slice(-2)) + controlcode;
+    const controlcode = c < 0x20
+      ? AsciiToDisplayLookup[c as AsciiCodeNumbers]
+      : String.fromCharCode(c);
+    return `${hex(c)}[${controlcode}]`;
   }).join(', ');
 }

@@ -129,6 +129,7 @@ export class EscPos extends RawCommandSet {
           new TransmitPrinterId('InfoBMakerName'),
           new TransmitPrinterId('InfoBModelName'),
           new TransmitPrinterId('InfoBSerialNo'),
+          new TransmitPrinterId('InfoBFirmwareVersion'),
         ];
       case "GetStatus":
         // TODO: Dynamically figure out what subcommands to send to the printer
@@ -152,9 +153,9 @@ export class EscPos extends RawCommandSet {
       case "Reset":
         return new Uint8Array([Ascii.ESC, this.enc('@')]);
       case 'TestPrint':
-        return new Uint8Array([Ascii.GS, this.enc('('), this.enc('A'), 0x02, 0x00, 0x01, 0x03]);
+        return this.testPrint(cmd as Cmds.TestPrint);
       case "Cut":
-        return this.cutHandler(cmd as Cmds.Cut);
+        return this.cutHandler(cmd as Cmds.Cut, docState);
       case "Newline":
         return new Uint8Array([Ascii.LF]);
       case "PulseOutput":
@@ -170,7 +171,7 @@ export class EscPos extends RawCommandSet {
       case "SetPrintArea":
         return this.setPrintArea((cmd as Cmds.SetPrintArea), docState);
       case "SetLineSpacing":
-        return this.setLineSpacing((cmd as Cmds.SetLineSpacing), docState);
+        return this.setLineSpacing((cmd as Cmds.SetLineSpacing).spacing, docState);
       case "TextFormatting":
         return this.setTextFormatting(cmd as Cmds.TextFormatting, docState);
       case "Codepage":
@@ -204,13 +205,33 @@ export class EscPos extends RawCommandSet {
     this.extendedCommandMap.set(SetAutoStatusBack.typeE,     setAutoStatusBack);
   }
 
-  private cutHandler(cmd: Cmds.Cut) {
+  private testPrint(cmd: Cmds.TestPrint) { // GS ( A
+    let page = 0x03;
+    switch (cmd.printType) {
+      case 'hexadecimal': page = 0x01; break;
+      case 'printerStatus': page = 0x02; break;
+      case 'rolling': page = 0x03; break;
+    }
+    return new Uint8Array([Ascii.GS, this.enc('('), this.enc('A'), 0x02, 0x00, 0x01, page]);
+  }
+
+  private cutHandler(cmd: Cmds.Cut, docState: EscPosDocState) {
+    const bladeOffset = cmd.bladeOffsetLines * 2.5;
     let cut = 0x00;
     switch (cmd.cutType) {
       case "Complete": cut = 0x00; break;
       case "Partial": cut = 0x01; break;
     }
-    return new Uint8Array([Ascii.GS, this.enc('V'), cut]);
+
+    // The cutter and the print head are separated by about 4 lines.
+    // Set the line spacing to 4x, newline, cut, then reset line spacing.
+    const currentLineSpacing = docState.lineSpacing;
+    return new Uint8Array([
+      ...this.setLineSpacing(bladeOffset, docState),
+      Ascii.LF,
+      Ascii.GS, this.enc('V'), cut,
+      ...this.setLineSpacing(currentLineSpacing, docState)
+    ]);
   }
 
   private pulseHandler(cmd: Cmds.PulseCommand) {
@@ -380,10 +401,11 @@ export class EscPos extends RawCommandSet {
   }
 
   private setLineSpacing(
-    cmd: Cmds.SetLineSpacing,
+    spacing: number,
     docState: EscPosDocState,
   ) {
-    const spacingInMotionUnits = clampToRange(cmd.spacing * docState.characterSize.top, 0, 255);
+    const spacingInMotionUnits = clampToRange(spacing * docState.characterSize.top, 0, 255);
+    docState.lineSpacing = spacing;
     return new Uint8Array([
       // ESC 3
       Ascii.ESC, this.enc('3'), spacingInMotionUnits,

@@ -1,6 +1,6 @@
 import { type CompiledDocument, type IDocument, Transaction } from "../Documents/index.js";
 import * as Cmds from "../Documents/index.js";
-import { UsbDeviceChannel, type IDeviceChannel, type IDeviceCommunicationOptions, InputMessageListener, type IHandlerResponse, DeviceCommunicationError, DeviceNotReadyError, type IStatusMessage, type IErrorMessage, type IDevice } from "./Communication/index.js";
+import { UsbDeviceChannel, type IDeviceChannel, type IDeviceCommunicationOptions, InputMessageListener, type IHandlerResponse, DeviceCommunicationError, DeviceNotReadyError, type IStatusMessage, type IErrorMessage, type IDevice, deviceInfoToOptionsUpdate } from "./Communication/index.js";
 import { transpileDocument } from "../Documents/DocumentTranspiler.js";
 import { EscPos, type CommandSet, asciiToDisplay } from "./Languages/index.js";
 import { PrinterOptions } from "./Options/index.js";
@@ -47,9 +47,9 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
   get printerModel() {
     return this._printerOptions?.model;
   }
-  /** Gets the read-only copy of the current config of the printer. */
-  get printerConfig() {
-    return this._printerOptions.copy();
+  /** Gets the read-only copy of the current options of the printer. */
+  get printerOptions() {
+    return this._printerOptions;
   }
 
   private _deviceCommOpts: IDeviceCommunicationOptions;
@@ -114,6 +114,8 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
       // If the channel failed to connect we have no hope.
       return false;
     }
+
+    this._printerOptions.update(deviceInfoToOptionsUpdate(this._channel.getDeviceInfo()))
 
     // TODO: language detection
     this._commandSet = new EscPos();
@@ -250,15 +252,15 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
         switch (m.messageType) {
           case 'ErrorMessage':
             this.sendError(m);
-            this.logIfDebug('Error message sent.');
+            this.logIfDebug('Error message sent.', m);
             break;
           case 'StatusMessage':
             this.sendStatus(m);
-            this.logIfDebug('Status message sent.');
+            this.logIfDebug('Status message sent.', m);
             break;
           case 'SettingUpdateMessage':
             this._printerOptions.update(m);
-            this.logIfDebug('Settings update message applied.');
+            this.logIfDebug('Settings update message applied.', m);
             break;
         }
       });
