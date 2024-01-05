@@ -6,6 +6,18 @@ Print receipts on receipt printers directly from your browser. No need to instal
 
 See [the demo](https://cellivar.github.io/WebReceiptLinePrinter/demo) that runs in your browser. Note that you will need a browser that supports WebUSB, such as Chrome, Edge, Chrome on Android, Opera, [etc](https://developer.mozilla.org/en-US/docs/Web/API/USB#browser_compatibility).
 
+### Supported Printers
+
+Tested:
+
+* Epson TM-T88V
+
+Theoretical:
+
+* All Epson ESC/POS printers with 42 characters per line
+
+This library has been tested with Epson TM-T88V printers, it may not work with other brands at this time. Have a particular printer you'd like to use? [Drop me a note about it!](https://github.com/Cellivar/WebReceiptLinePrinter/issues).
+
 ## Docs
 
 Read more [about ReceiptLine.](./docs/ReceiptLine.md).
@@ -18,5 +30,3 @@ To facilitate local dev you can spin up a local static webserver that will end u
 
 * `npm run test` to run the tests.
 * `npm run build` to run the typescript compiler.
-
-
