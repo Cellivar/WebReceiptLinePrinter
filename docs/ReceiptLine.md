@@ -2,4 +2,6 @@
 
 It's like markdown but for receipts!
 
-https://github.com/receiptline/receiptline/tree/master
+ReceiptLine is a standard document format for representing receipts in a printer-agnostic manner.
+
+[See their repository here for more details](https://github.com/receiptline/receiptline)
