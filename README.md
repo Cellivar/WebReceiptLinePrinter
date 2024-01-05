@@ -2,6 +2,8 @@
 
 Print receipts on receipt printers directly from your browser. No need to install drivers, extensions, or anything else.
 
+![image](https://github.com/Cellivar/WebReceiptLinePrinter/assets/1441553/4072cc21-5d9e-4c96-a47c-feb26f81ff59)
+
 ## Demo
 
 See [the demo](https://cellivar.github.io/WebReceiptLinePrinter/demo) that runs in your browser. Note that you will need a browser that supports WebUSB, such as Chrome, Edge, Chrome on Android, Opera, [etc](https://developer.mozilla.org/en-US/docs/Web/API/USB#browser_compatibility).
