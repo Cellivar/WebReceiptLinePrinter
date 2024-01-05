@@ -122,7 +122,7 @@ export class Cut implements IPrinterCommand {
   ) {}
 }
 
-export type PulsePin = "Pin2" | "Pin5"
+export type PulsePin = "Drawer1" | "Drawer2"
 
 export class PulseCommand implements IPrinterCommand {
   name = "Pulse the drawer kick output.";
@@ -137,7 +137,7 @@ export class PulseCommand implements IPrinterCommand {
   public readonly pulsePin: PulsePin;
   constructor(
     /** Which device pin to pulse on */
-    pulsePin: PulsePin = "Pin2",
+    pulsePin: PulsePin = "Drawer1",
     /** Milliseconds pulse is on for, up to 500ms. */
     onMS: number = 100,
     /** Milliseconds pulse is off for. Must be greater than on time. Up to 500ms */

@@ -341,11 +341,11 @@ function columnsToLine(
     if (propMembers.has('drawer')) {
       switch (propMembers.get('drawer')) {
         case 'kick':
-        case 'pin2':
-          lineElement.drawerKick = 'Pin2';
+        case '1':
+          lineElement.drawerKick = 'Drawer1';
           break;
-        case 'pin5':
-          lineElement.drawerKick = 'Pin5';
+        case '2':
+          lineElement.drawerKick = 'Drawer2';
           break;
       }
     }
