@@ -8,6 +8,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'web-receiptline-printer',
+      fileName: 'web-receiptline-printer',
     },
     minify: false,
   },

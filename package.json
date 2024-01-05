@@ -1,6 +1,6 @@
 {
   "name": "web-receiptline-printer",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "description": "A small Library for printing ReceiptLine documents to various receipt printers from a browser.",
   "type": "module",
   "repository": {
