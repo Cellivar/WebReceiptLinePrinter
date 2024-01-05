@@ -235,14 +235,14 @@ export class EscPos extends RawCommandSet {
   }
 
   private pulseHandler(cmd: Cmds.PulseCommand) {
-    let pin: number
+    let drawer: number
     switch (cmd.pulsePin) {
-      case "Pin2": pin = 0x00;
-      case "Pin5": pin = 0x01;
+      case "Drawer1": drawer = 0x00; break;
+      case "Drawer2": drawer = 0x01; break;
     }
     const onMS = Math.floor(cmd.onMS / 2);
     const offMS = Math.floor(cmd.offMS / 2);
-    return new Uint8Array([Ascii.ESC, this.enc('p'), pin, onMS, offMS]);
+    return new Uint8Array([Ascii.ESC, this.enc('p'), drawer, onMS, offMS]);
   }
 
   private setTextFormatting(f: Cmds.TextFormat, docState: EscPosDocState) {

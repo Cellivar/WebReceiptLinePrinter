@@ -45,6 +45,7 @@ interface lineElement {
   vr?: LineRuleNext;
   hr?: boolean;
   cut?: boolean;
+  drawerKick?: Cmds.PulsePin;
 }
 
 interface formattedText {
@@ -334,6 +335,19 @@ function columnsToLine(
     // parse code property
     if (propMembers.has('code')) {
       lineElement.code = Object.assign({ data: propMembers.get('code') }, state.barcodeOptions);
+    }
+
+    // parse drawer kick property
+    if (propMembers.has('drawer')) {
+      switch (propMembers.get('drawer')) {
+        case 'kick':
+        case '1':
+          lineElement.drawerKick = 'Drawer1';
+          break;
+        case '2':
+          lineElement.drawerKick = 'Drawer2';
+          break;
+      }
     }
 
     // parse image property
@@ -802,14 +816,16 @@ function createLine(
     }
   }
 
+  if (firstColumn.drawerKick !== undefined) {
+    lineCmds.push(
+      new Cmds.PulseCommand(firstColumn.drawerKick)
+    )
+  }
+
   // process image
   if (firstColumn.image !== undefined) {
     // append commands to print image
     lineCmds.push(
-      // printer.command.normal() +
-      // printer.command.area(left, width, right) +
-      // printer.command.align(column.align) +
-      // printer.command.image(column.image));
       ...resetFormattingCmds(left, width, right, firstColumn.align),
       new Cmds.ImageCommand(firstColumn.image),
     );
@@ -819,10 +835,6 @@ function createLine(
   if (firstColumn.code !== undefined) {
     // append commands to print barcode
     lineCmds.push(
-      // printer.command.normal() +
-      // printer.command.area(left, width, right) +
-      // printer.command.align(column.align) +
-      // printer.command.barcode(column.code, printer.encoding)
       ...resetFormattingCmds(left, width, right, firstColumn.align),
       new Cmds.Barcode(firstColumn.code),
     );
@@ -832,10 +844,6 @@ function createLine(
   if (firstColumn.command !== undefined) {
     // append commands to insert commands
     lineCmds.push(
-      // printer.command.normal() +
-      // printer.command.area(left, width, right) +
-      // printer.command.align(column.align) +
-      // printer.command.command(column.command)
       ...resetFormattingCmds(left, width, right, firstColumn.align),
       new Cmds.RawCommand(firstColumn.command)
     );
