@@ -136,12 +136,12 @@ export class PulseCommand implements IPrinterCommand {
   public readonly offMS: number;
   public readonly pulsePin: PulsePin;
   constructor(
+    /** Which device pin to pulse on */
+    pulsePin: PulsePin = "Pin2",
     /** Milliseconds pulse is on for, up to 500ms. */
     onMS: number = 100,
     /** Milliseconds pulse is off for. Must be greater than on time. Up to 500ms */
     offMS: number = 500,
-    /** Which device pin to pulse on */
-    pulsePin: PulsePin = "Pin2"
   ) {
     this.onMS = Math.floor(Math.min(500, onMS ?? 100));
     this.offMS = Math.floor(Math.min(500, offMS ?? 500));
