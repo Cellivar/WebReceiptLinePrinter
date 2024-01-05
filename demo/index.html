@@ -292,11 +292,14 @@
                         <span class="visually-hidden">Settings</span>
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a id="printtest_${idx}" data-printer-idx="${idx}" class="dropdown-item" href="#">
+                        <li><a id="printtest_${idx}"   data-printer-idx="${idx}" class="dropdown-item" href="#">
                             Print test page
                         </a></li>
                         <li><a id="printconfig_${idx}" data-printer-idx="${idx}" class="dropdown-item" href="#">
                             Print config
+                        </a></li>
+                        <li><a id="drawerkick_${idx}"  data-printer-idx="${idx}" class="dropdown-item" href="#">
+                            Kick drawer out
                         </a></li>
                     </ul>
                 </div>
@@ -346,6 +349,16 @@
                         const printer = this.printers[printerIdx];
                         const doc = {
                           commands: [new WebReceipt.TestPrint('printerStatus')]
+                        };
+                        await printer.sendDocument(doc);
+                    });
+                document.getElementById(`drawerkick_${idx}`)
+                    .addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        const printerIdx = e.currentTarget.dataset.printerIdx as number;
+                        const printer = this.printers[printerIdx];
+                        const doc = {
+                          commands: [new WebReceipt.PulseCommand()]
                         };
                         await printer.sendDocument(doc);
                     });

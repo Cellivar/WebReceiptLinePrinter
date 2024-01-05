@@ -237,8 +237,8 @@ export class EscPos extends RawCommandSet {
   private pulseHandler(cmd: Cmds.PulseCommand) {
     let pin: number
     switch (cmd.pulsePin) {
-      case "Pin2": pin = 0x00;
-      case "Pin5": pin = 0x01;
+      case "Pin2": pin = 0x00; break;
+      case "Pin5": pin = 0x01; break;
     }
     const onMS = Math.floor(cmd.onMS / 2);
     const offMS = Math.floor(cmd.offMS / 2);
