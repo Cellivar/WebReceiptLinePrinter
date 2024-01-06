@@ -2,6 +2,7 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+import eslint from 'vite-plugin-eslint';
 
 export default defineConfig({
   build: {
@@ -12,7 +13,9 @@ export default defineConfig({
     },
     minify: false,
   },
-  plugins: [dts()],
+  plugins: [dts(), eslint({
+    failOnError: false
+  })],
   test: {
     coverage: {
       // you can include other reporters, but 'json-summary' is required, json is recommended
