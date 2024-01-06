@@ -15,7 +15,7 @@ type AwaitedCommand = {
   cmd: Cmds.IPrinterCommand,
   promise: Promise<boolean>,
   resolve?: (value: boolean) => void,
-  reject?: (reason?: any) => void,
+  reject?: (reason?: unknown) => void,
 }
 
 function promiseWithTimeout<T>(

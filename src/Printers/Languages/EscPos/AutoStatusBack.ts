@@ -73,6 +73,7 @@ export function parseAutoStatusBack(
   firstByte: number,
   secondByte: number,
   thirdByte: number,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _fourthByte: number,
 ): PrinterMessage[] {
   // https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/gs_la.html

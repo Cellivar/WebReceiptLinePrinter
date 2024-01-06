@@ -40,7 +40,7 @@ export interface CommandSet<TOutput> {
 }
 
 export function exhaustiveMatchGuard(_: never): never {
-  throw new Error('Invalid case received!');
+  throw new Error('Invalid case received!' + _);
 }
 
 /** Interface of document state effects carried between individual commands. */

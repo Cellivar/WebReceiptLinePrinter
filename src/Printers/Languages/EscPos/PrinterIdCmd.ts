@@ -178,7 +178,7 @@ export function parseTransmitPrinterId(
   // Header values will never match a single-byte response.
   const firstByte = msg[0];
   switch (firstByte) {
-    case PrinterInfoHeaderA:
+    case PrinterInfoHeaderA: {
       const infoAPacket = sliceToNull(msg);
       if (infoAPacket.sliced.length === 0) {
         result.messageIncomplete = true;
@@ -197,8 +197,8 @@ export function parseTransmitPrinterId(
       result.messageMatchedExpectedCommand = true;
       result.messages.push(config);
       break;
-
-    case PrinterInfoHeaderB:
+    }
+    case PrinterInfoHeaderB: {
       const infoBPacket = sliceToNull(msg);
       if (infoBPacket.sliced.length === 0) {
         result.messageIncomplete = true;
@@ -216,7 +216,7 @@ export function parseTransmitPrinterId(
       result.messageMatchedExpectedCommand = true;
       result.messages.push(config);
       break;
-
+    }
     default:
       setSingleByteData(firstByte, command.subcommand, config);
       result.remainder = msg.slice(1);

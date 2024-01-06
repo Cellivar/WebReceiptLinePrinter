@@ -28,6 +28,7 @@ export function sliceToNull(msg: Uint8Array): {
   };
 }
 
+/* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 enum MessageCandidates {
   Response = 0x00,
   ASB2to4  = 0x00,
@@ -38,6 +39,7 @@ enum MessageCandidates {
   XON      = 0x11,
   XOFF     = 0x13,
 }
+/* eslint-enable @typescript-eslint/no-duplicate-enum-values */
 
 type MessageCandidate = 'unknown' | 'response' | 'asb' | 'realtime' | 'header' |'xon' | 'xoff'
 
@@ -132,7 +134,7 @@ export function handleEscPosMessage(
   if (firstByte === undefined) { return result; }
 
   switch (getMessageCandidate(firstByte)) {
-    case 'asb':
+    case 'asb': {
       // ASB is always 4 bytes, header of 0**1**00, trailer of 0**0****.
       // We need the next 3 bytes, make sure they're there.
       if (msg.length < 4) {
@@ -161,10 +163,10 @@ export function handleEscPosMessage(
       // This is a complete ASB! Parse it!
       result.messages.push(...parseAutoStatusBack(first, second, third, fourth));
       break;
-
+    }
     case 'header':
     case 'realtime':
-    case 'response':
+    case 'response': {
       // We got a response to a sent command. To proceed we need to know what
       // question we asked. Response bytes don't contain enough info to tell.
       // If we don't know what we asked we can't process this command.
@@ -200,7 +202,7 @@ export function handleEscPosMessage(
       result.messageIncomplete = handled.messageIncomplete;
       result.messageMatchedExpectedCommand = handled.messageMatchedExpectedCommand;
       break;
-
+    }
     case 'xoff':
     case 'xon':
       // TODO: Until serial support is figured out if we ever get these drop them.

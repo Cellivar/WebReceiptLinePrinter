@@ -1,3 +1,6 @@
+/* eslint-disable no-irregular-whitespace */
+// This file is chock full of weird whitespace, intentionally.
+
 // This file is from Niels LeenHeer's project
 // https://github.com/NielsLeenheer/CodepageEncoder
 
