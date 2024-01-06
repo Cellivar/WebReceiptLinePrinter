@@ -1,5 +1,6 @@
 /// <reference types="vitest" />
-import { resolve } from 'path';
+import path from 'path';
+import packageJson from './package.json';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import eslint from 'vite-plugin-eslint';
@@ -7,9 +8,8 @@ import eslint from 'vite-plugin-eslint';
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
-      name: 'web-receiptline-printer',
-      fileName: 'web-receiptline-printer',
+      entry: path.resolve('src/index.ts'),
+      name: packageJson.name,
     },
     minify: false,
   },

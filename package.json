@@ -22,7 +22,7 @@
   },
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/web-receiptline-printer.js",
       "require": "./dist/web-receiptline-printer.umd.csj",
       "default": "./dist/web-receiptline-printer.js"
