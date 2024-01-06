@@ -1,3 +1,4 @@
+/* eslint-disable no-control-regex */
 import * as Cmds from "../Documents/index.js"
 import { clampToRange, numberInRange, repeat } from "../NumericRange.js";
 import type { IMediaOptions } from "../Printers/Options/index.js";
@@ -220,7 +221,7 @@ function columnsToLine(
   array: string[],
   state: parseState): lineElement {
   // parsed column object
-  let lineElement: lineElement = {
+  const lineElement: lineElement = {
     align: getAlignmentFromWhitespace(column),
     width: -1,
     enableWrapping: state.wrap,
@@ -606,7 +607,7 @@ function createLine(
   const fixedSizeColumns    = columns.filter(el => el.width > 0);
   const variableSizeColumns = columns.filter(el => el.width < 0);
   // Print space explicitly occupied
-  let reservedWidth = fixedSizeColumns.reduce((a, el) => a + el.width, 0);
+  const reservedWidth = fixedSizeColumns.reduce((a, el) => a + el.width, 0);
   // Remaining space for auto-sizing
   let freeWidth = mediaOptions.charactersPerLine - reservedWidth;
   // Borders occupy free space
@@ -652,7 +653,7 @@ function createLine(
         );
         state.nextRuleOperation = 'addVertical';
         break;
-      case 'addHorizontal':
+      case 'addHorizontal': {
         // append commands to print horizontal rule
         const leftMarginDiff = left - state.rules.left;
         const widthDiff = width - state.rules.width;
@@ -672,6 +673,7 @@ function createLine(
         );
         state.nextRuleOperation = 'addVertical';
         break;
+      }
       default:
         break;
     }
@@ -872,7 +874,7 @@ function measureText(text: string, encoding: string) {
     case 'big5':
       r = t.reduce((a, c) => a + (c.codePointAt(0) ?? 0x20 < 0x80 ? 1 : 2), 0);
       break;
-    case 'tis620':
+    case 'tis620': {
       const a = t.reduce((a, c) => {
         const d = c.codePointAt(0) ?? 0x20;
         if (a.consonant) {
@@ -927,6 +929,7 @@ function measureText(text: string, encoding: string) {
       }
       r = a.length;
       break;
+    }
     default:
       r = t.length;
       break;
@@ -1045,7 +1048,7 @@ function wrapText(
         case text === '`':
           decor.invert = decor.invert === 'None' ? 'Enable' : 'None';
           break;
-        case /^\^+$/.test(text):
+        case /^\^+$/.test(text): {
           const d = Math.min(text.length, 7);
           // The same number as the current setting is a reset.
           sizeSetting = sizeSetting === d ? 0 : d;
@@ -1053,6 +1056,7 @@ function wrapText(
           decor.width = sizes.width;
           decor.height = sizes.height;
           break;
+        }
       }
     }
   });

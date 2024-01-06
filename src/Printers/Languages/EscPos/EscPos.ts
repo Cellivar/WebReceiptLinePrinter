@@ -147,6 +147,7 @@ export class EscPos extends RawCommandSet {
     switch (cmd.type) {
       default:
         exhaustiveMatchGuard(cmd.type);
+        break;
       case "CustomCommand":
         return this.extendedCommandHandler(cmd, docState);
 
@@ -326,14 +327,16 @@ export class EscPos extends RawCommandSet {
     // TODO: Add offset to print position in form
     const offset = (cmd.characters) * docState.characterSize.left;
     switch (cmd.origin) {
-      case 'absolute':
+      case 'absolute': {
         const abs = clampToRange(offset, 0, 65535);
         // ESC $ lowbyte, highbyte
         return new Uint8Array([Ascii.ESC, this.enc('$'), (abs & 255), (abs >> 8 & 255)]);
-      case 'relative':
+      }
+      case 'relative': {
         const rel = clampToRange(offset, -32768, 32767);
         // ESC \ lowbyte highbyte
         return new Uint8Array([Ascii.ESC, this.enc('\\'), (rel & 255), (rel >> 8 & 255)]);
+      }
     }
   }
 

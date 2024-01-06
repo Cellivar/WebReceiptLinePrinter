@@ -60,7 +60,6 @@ export abstract class RawCommandSet implements CommandSet<Uint8Array> {
 
     if (cmdHandler === undefined) {
       throw new TranspileDocumentError(
-        // eslint-disable-next-line prettier/prettier
         `Unknown command '${cmd.constructor.name}' was not found in the command map for ${this.commandLanguage} command language. If you're trying to implement a custom command check the documentation for correctly adding mappings.`
       );
     }

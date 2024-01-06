@@ -180,7 +180,7 @@ export class RawCommand<TOutput> implements IPrinterCommand {
   name = 'Adds raw command'
   type = "Raw" as const;
   effectFlags = new CommandEffectFlags(["unknown"]);
-  toDisplay() { return this.name };
+  toDisplay() { return this.name }
 
   constructor(public readonly command: TOutput) {}
 }
@@ -326,7 +326,7 @@ export class SetLineSpacing implements IPrinterCommand {
   name = 'Set the vertical line spacing'
   type = 'SetLineSpacing' as const;
   effectFlags = NoEffect;
-  toDisplay() { return `Set vertical spacing to ${this.spacing}.`};
+  toDisplay() { return `Set vertical spacing to ${this.spacing}.`}
 
   public readonly spacing: number;
 

@@ -83,7 +83,7 @@ function splitTransactions<TOutput>(
   let currentTrans: Cmds.IPrinterCommand[] = [];
 
   // We may need to add new commands while iterating, create a stack.
-  let commandStack = commands.toReversed();
+  const commandStack = commands.toReversed();
 
   do {
     const command = commandStack.pop();

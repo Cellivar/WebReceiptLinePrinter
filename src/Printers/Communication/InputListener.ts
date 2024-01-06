@@ -10,6 +10,10 @@ export interface IHandlerResponse<TInput> {
 
 export class InputMessageListener<TInput> {
   public start() {
+    // We intentionally want to kick off an async promise here without needing
+    // the calling function to be async. The promise we're starting is meant to
+    // run forever and never resolve until it's being shut down.
+    // eslint-disable-next-line no-async-promise-executor
     new Promise<void>(async (_, reject) => {
       let aggregate: TInput[] = [];
       do {
