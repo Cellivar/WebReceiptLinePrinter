@@ -64,6 +64,10 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
   get ready() {
     return this._ready;
   }
+  get connected() {
+    return !this._disposed
+      && this._channel.connected
+  }
 
   /** Construct a new printer from a given USB device. */
   static fromUSBDevice(device: USBDevice, options: IDeviceCommunicationOptions): ReceiptPrinter {
@@ -115,7 +119,7 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
       return false;
     }
 
-    this._printerOptions.update(deviceInfoToOptionsUpdate(this._channel.getDeviceInfo()))
+    this._printerOptions.update(deviceInfoToOptionsUpdate(this._channel.getDeviceInfo()));
 
     // TODO: language detection
     this._commandSet = new EscPos();
@@ -132,6 +136,7 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
   /** Close the connection to this printer, preventing future communication. */
   public async dispose() {
     this._disposed = true;
+    this._ready = Promise.resolve(false);
     this._streamListener?.dispose();
     await this._channel.dispose();
   }
