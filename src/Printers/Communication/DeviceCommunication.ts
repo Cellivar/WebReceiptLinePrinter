@@ -48,6 +48,9 @@ export interface IDeviceChannel<TOutput, TInput> {
   /** A promise indicating this communication channel is ready for use. */
   get ready(): Promise<boolean>;
 
+  /** Whether the device is connected. */
+  get connected(): boolean;
+
   /** Close the channel, disallowing future communication. */
   dispose(): Promise<void>;
 

@@ -50,6 +50,11 @@ export class UsbDeviceChannel implements IDeviceChannel<Uint8Array, Uint8Array> 
   private _readyFlag = false;
   private _readyPromise: Promise<boolean>;
   public get ready() { return this._readyPromise; }
+  public get connected() {
+    return !this._disposed
+      && this._readyFlag
+      && this.device.opened
+  }
 
   private _disposed = false;
 
@@ -72,67 +77,6 @@ export class UsbDeviceChannel implements IDeviceChannel<Uint8Array, Uint8Array> 
     }
     this._readyFlag = true;
     return true;
-  }
-
-  public async dispose() {
-    if (this._disposed) {
-      return;
-    }
-
-    this._disposed = true;
-    this._readyPromise = Promise.resolve(false);
-
-    try {
-      await this.device.close();
-    } catch (e) {
-      if (
-        e instanceof DOMException &&
-        e.name === 'NotFoundError' &&
-        e.message ===
-        "Failed to execute 'close' on 'USBDevice': The device was disconnected."
-      ) {
-        // Device was already closed, no-op.
-        return;
-      }
-
-      throw e;
-    }
-  }
-
-  public async sendCommands(
-    commandBuffer: Uint8Array
-  ): Promise<DeviceCommunicationError | undefined> {
-    if (!this._readyFlag || this._disposed || this.deviceOut === undefined) {
-      throw new DeviceNotReadyError();
-    }
-    if (this._commOptions.debug) {
-      console.debug('Sending command buffer to device via USB.');
-      console.time('commandBufferSendTime');
-    }
-
-    try {
-      // TOOD: Add timeout in case of communication hang.
-      await this.device.transferOut(this.deviceOut.endpointNumber, commandBuffer);
-      return;
-    } catch (e: unknown) {
-      if (typeof e === 'string') {
-        return new DeviceCommunicationError(e);
-      }
-      if (e instanceof Error) {
-        return new DeviceCommunicationError(undefined, e);
-      }
-      // Dunno what this is but we can't wrap it.
-      throw e;
-    } finally {
-      if (this._commOptions.debug) {
-        console.timeEnd('commandBufferSendTime');
-        console.debug('Completed sending commands.');
-      }
-    }
-  }
-
-  public getDeviceInfo() {
-    return deviceToInfo(this.device);
   }
 
   private async connect() {
@@ -203,8 +147,69 @@ export class UsbDeviceChannel implements IDeviceChannel<Uint8Array, Uint8Array> 
     }
   }
 
-  public async getInput(): Promise<Uint8Array[] | DeviceCommunicationError> {
-    if (this.deviceIn === undefined || this._disposed) { return new DeviceCommunicationError('Channel is disposed.'); }
+  public async dispose() {
+    if (this._disposed) {
+      return;
+    }
+
+    this._disposed = true;
+    this._readyPromise = Promise.resolve(false);
+
+    try {
+      await this.device.close();
+    } catch (e) {
+      if (
+        e instanceof DOMException &&
+        e.name === 'NotFoundError' &&
+        e.message ===
+        "Failed to execute 'close' on 'USBDevice': The device was disconnected."
+      ) {
+        // Device was already closed, no-op.
+        return;
+      }
+
+      throw e;
+    }
+  }
+
+  public async sendCommands(
+    commandBuffer: Uint8Array
+  ): Promise<DeviceNotReadyError | undefined> {
+    if (this.deviceOut === undefined || !this.connected) {
+      return new DeviceNotReadyError();
+    }
+    if (this._commOptions.debug) {
+      console.debug('Sending command buffer to device via USB.');
+      console.time('commandBufferSendTime');
+    }
+
+    try {
+      // TOOD: Add timeout in case of communication hang.
+      await this.device.transferOut(this.deviceOut.endpointNumber, commandBuffer);
+      return;
+    } catch (e: unknown) {
+      if (typeof e === 'string') {
+        return new DeviceCommunicationError(e);
+      }
+      if (e instanceof Error) {
+        return new DeviceCommunicationError(undefined, e);
+      }
+      // Dunno what this is but we can't wrap it.
+      throw e;
+    } finally {
+      if (this._commOptions.debug) {
+        console.timeEnd('commandBufferSendTime');
+        console.debug('Completed sending commands.');
+      }
+    }
+  }
+
+  public getDeviceInfo() {
+    return deviceToInfo(this.device);
+  }
+
+  public async getInput(): Promise<Uint8Array[] | DeviceNotReadyError> {
+    if (this.deviceIn === undefined || !this.connected) { return new DeviceNotReadyError('Channel is not connected.'); }
     const result = await this.device.transferIn(
       this.deviceIn.endpointNumber,
       this.deviceIn.packetSize * 8); // Usually 64 * 8 = 512
