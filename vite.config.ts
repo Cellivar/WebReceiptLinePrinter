@@ -8,7 +8,7 @@ import eslint from 'vite-plugin-eslint';
 export default defineConfig({
   build: {
     lib: {
-      entry: path.resolve('src/index.ts'),
+      entry: path.resolve(__dirname, 'src/index.ts'),
       name: packageJson.name,
     },
     minify: false,
