@@ -12,17 +12,15 @@ self.addEventListener('activate', () => self.clients.claim());
 
 // Intercept fetch requests for modules and compile the intercepted typescript.
 self.addEventListener('fetch', (event) => {
+    if (!event.request.url.startsWith('https://')) {
+        return;
+    }
+
     // Start off easy: if it's a request for a TS file, transpile it.
     if (event.request.url.endsWith('.ts')) {
         log('Fetching', event.request.url, 'as just typescript');
         event.respondWith(transpileTypeScript(event.request.url));
         return;
-    }
-
-    // Some sanity checks
-    if (!event.request.url.startsWith('http')) {
-      // chrome-extension:// should be ignored, for example.
-      return;
     }
 
     // Next up is 'no extension'. In classical TS imports you omit any extension
@@ -108,7 +106,7 @@ const transpileTypeScript = async (requestUrl) => {
     };
 
     const transpiledResponse = new Response(transpiledCode, responseOptions);
-    if (!requestUrl.startsWith('https://localhost')) {
+    if (!requestUrl.startsWith('https://localhost') && requestUrl.startsWith('https://')) {
         typescriptCache.put(requestUrl, transpiledResponse.clone());
     }
 
