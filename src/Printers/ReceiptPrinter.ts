@@ -6,7 +6,7 @@ import { EscPos, type CommandSet, asciiToDisplay } from "./Languages/index.js";
 import { PrinterOptions } from "./Options/index.js";
 
 export interface ReceiptPrinterEventMap {
-  disconnectedDevice: CustomEvent<string>;
+  //disconnectedDevice: CustomEvent<string>;
   reportedStatus: CustomEvent<IStatusMessage>;
   reportedError: CustomEvent<IErrorMessage>;
 }
@@ -43,14 +43,12 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
   private _awaitedCommand?: AwaitedCommand;
 
   private _printerOptions: PrinterOptions;
-  /** Gets the model of the printer, detected from the printer's config. */
-  get printerModel() {
-    return this._printerOptions?.model;
-  }
   /** Gets the read-only copy of the current options of the printer. */
-  get printerOptions() {
-    return this._printerOptions;
-  }
+  get printerOptions() { return this._printerOptions; }
+  /** Gets the model of the printer, detected from the printer's config. */
+  get printerModel() { return this._printerOptions.model; }
+  /** Gets the serial number of the printer, detected from the printer's config. */
+  get printerSerial() { return this._printerOptions.serialNumber; }
 
   private _deviceCommOpts: IDeviceCommunicationOptions;
   /** Gets the configured printer communication options. */
@@ -144,7 +142,7 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
   /** Compile then send a document to the printer. */
   public async sendDocument(doc: IDocument): Promise<boolean> {
     await this.ready;
-    if (this._disposed == true || this._commandSet === undefined) {
+    if (!this.connected || this._commandSet === undefined) {
       throw new DeviceNotReadyError("Printer is not ready to communicate.");
     }
 
@@ -181,6 +179,13 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
     }
 
     return true;
+  }
+
+  private sendEvent(
+    eventName: keyof ReceiptPrinterEventMap,
+    detail: IErrorMessage | IStatusMessage
+  ): boolean {
+    return super.dispatchEvent(new CustomEvent<IErrorMessage | IStatusMessage>(eventName, { detail }));
   }
 
   private async sendTransactionAndWait(
@@ -256,11 +261,11 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
       parseResult.messages.forEach(m => {
         switch (m.messageType) {
           case 'ErrorMessage':
-            this.sendError(m);
+            this.sendEvent('reportedError', m);
             this.logIfDebug('Error message sent.', m);
             break;
           case 'StatusMessage':
-            this.sendStatus(m);
+            this.sendEvent('reportedStatus', m);
             this.logIfDebug('Status message sent.', m);
             break;
           case 'SettingUpdateMessage':
@@ -275,13 +280,6 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
     this.logIfDebug(`Returning unused ${msg.length} bytes.`);
     const remainderData = msg.length === 0 ? [] : [msg];
     return { remainderData }
-  }
-
-  private sendError(msg: IErrorMessage) {
-    return this.dispatchEvent(new CustomEvent<IErrorMessage>('reportedError', { detail: msg }));
-  }
-  private sendStatus(msg: IStatusMessage) {
-    return this.dispatchEvent(new CustomEvent<IStatusMessage>('reportedStatus', { detail: msg }));
   }
 
   private logIfDebug(...obj: unknown[]) {

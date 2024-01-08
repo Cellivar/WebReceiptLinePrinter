@@ -24,10 +24,17 @@ export interface IDeviceCommunicationOptions {
 
 export interface IDevice {
   /** Close the connection to this device and clean up unmanaged resources. */
-  dispose(): Promise<void>
+  dispose(): Promise<void>;
+
+  /** Whether the device is connected. */
+  get connected(): boolean;
 
   /** A promise indicating this device is ready to be used. */
   ready: Promise<boolean>;
+}
+
+export interface IDeviceEvent<TDevice> {
+  device: TDevice;
 }
 
 /** Static metadata for a connected device. */
