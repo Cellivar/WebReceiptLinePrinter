@@ -103,7 +103,6 @@ export class EscPos extends RawCommandSet {
       },
       printWidth: media.charactersPerLine,
       textFormat: {},
-      dpi: 5,
       codepage: "CP437"
     };
   }
@@ -142,7 +141,8 @@ export class EscPos extends RawCommandSet {
 
   public transpileCommand(
     cmd: Cmds.IPrinterCommand,
-    docState: EscPosDocState): Uint8Array {
+    docState: EscPosDocState
+  ): Uint8Array {
     // Do not suggest a better way to do this unless it's in the form of a complete PR.
     switch (cmd.type) {
       default:

@@ -43,7 +43,8 @@ export abstract class RawCommandSet implements CommandSet<Uint8Array> {
 
   public abstract transpileCommand(
     cmd: Cmds.IPrinterCommand,
-    docState: TranspiledDocumentState): Uint8Array;
+    docState: TranspiledDocumentState
+  ): Uint8Array | TranspileDocumentError;
 
   protected extendedCommandHandler(
     cmd: Cmds.IPrinterCommand,

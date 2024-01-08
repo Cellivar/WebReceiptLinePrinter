@@ -1,7 +1,7 @@
 {
   "name": "web-receiptline-printer",
-  "version": "0.1.0-rc1",
-  "description": "A small Library for printing ReceiptLine documents to various receipt printers from a browser.",
+  "version": "0.2.0-rc2",
+  "description": "A small library for printing ReceiptLine documents to various receipt printers from a browser.",
   "type": "module",
   "repository": {
     "type": "git",
@@ -13,6 +13,13 @@
     "url": "https://github.com/Cellivar/WebReceiptLinePrinter/issues"
   },
   "homepage": "https://github.com/Cellivar/WebReceiptLinePrinter",
+  "keywords": [
+    "receipt_printer",
+    "receiptline",
+    "webusb",
+    "epson",
+    "tm-t88v"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

@@ -33,7 +33,8 @@ export interface CommandSet<TOutput> {
   /** Transpile a single command, tracking its effects to a document. */
   transpileCommand(
     cmd: Cmds.IPrinterCommand,
-    docMetadata: TranspiledDocumentState): TOutput | TranspileDocumentError;
+    docMetadata: TranspiledDocumentState
+  ): TOutput | TranspileDocumentError;
 
   /** Combine separate commands into one series of commands. */
   combineCommands(...commands: TOutput[]): TOutput;
@@ -46,7 +47,6 @@ export function exhaustiveMatchGuard(_: never): never {
 /** Interface of document state effects carried between individual commands. */
 export interface TranspiledDocumentState {
   lineSpacing: number;
-  dpi: number;
   charactersPerLine: number;
 
   margin: {

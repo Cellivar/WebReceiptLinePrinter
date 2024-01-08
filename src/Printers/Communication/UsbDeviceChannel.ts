@@ -60,12 +60,10 @@ export class UsbDeviceChannel implements IDeviceChannel<Uint8Array, Uint8Array> 
 
   constructor(
     device: USBDevice,
-    commOptions: IDeviceCommunicationOptions = { debug: false}) {
-
+    commOptions: IDeviceCommunicationOptions = { debug: false}
+  ) {
     this.device = device;
-    device.vendorId
     this._commOptions = commOptions;
-
     this._readyPromise = this.setup();
   }
 
@@ -178,6 +176,7 @@ export class UsbDeviceChannel implements IDeviceChannel<Uint8Array, Uint8Array> 
     if (this.deviceOut === undefined || !this.connected) {
       return new DeviceNotReadyError();
     }
+
     if (this._commOptions.debug) {
       console.debug('Sending command buffer to device via USB.');
       console.time('commandBufferSendTime');
@@ -212,7 +211,23 @@ export class UsbDeviceChannel implements IDeviceChannel<Uint8Array, Uint8Array> 
     if (this.deviceIn === undefined || !this.connected) { return new DeviceNotReadyError('Channel is not connected.'); }
     const result = await this.device.transferIn(
       this.deviceIn.endpointNumber,
-      this.deviceIn.packetSize * 8); // Usually 64 * 8 = 512
+      this.deviceIn.packetSize * 8, // Usually 64 * 8 = 512
+    )
+    .catch((error: unknown) => {
+      if (error instanceof DOMException
+        && error.message.endsWith('A transfer error has occurred.')
+        && error.name === 'NetworkError'
+      ){
+        // The device disconnected, this is fine.
+        return new DeviceNotReadyError('Channel has disconnected');
+      }
+      // dunno what happened
+      throw error;
+    });
+
+    if (result instanceof DeviceNotReadyError) {
+      return result;
+    }
 
     // Sanity tests
     if (result.status === "stall") {
