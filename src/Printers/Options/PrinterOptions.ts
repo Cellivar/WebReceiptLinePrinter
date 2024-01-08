@@ -40,6 +40,8 @@ export interface IPrinterFactoryInformation {
   get serialNumber(): string;
   /** The model of the printer. */
   get model(): string;
+  /** The manufacturer of the printer */
+  get manufacturer(): string;
   /** The firmware version information for the printer. */
   get firmware(): string;
   /** The command languages the printer supports. */
