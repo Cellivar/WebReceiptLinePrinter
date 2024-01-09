@@ -112,6 +112,19 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
     super.addEventListener(type, callback, options);
   }
 
+  public removeEventListener<T extends keyof ReceiptPrinterEventMap>(
+    type: T,
+    listener: EventListenerObject | null | ((this: ReceiptPrinter, ev: ReceiptPrinterEventMap[T]) => void),
+    options?: boolean | AddEventListenerOptions
+  ): void;
+  public removeEventListener(
+    type: string,
+    callback: EventListenerOrEventListenerObject | null,
+    options?: boolean | EventListenerOptions | undefined
+  ): void {
+      super.removeEventListener(type, callback, options);
+  }
+
   private async setup() {
     const channelReady = await this._channel.ready;
     if (!channelReady) {
