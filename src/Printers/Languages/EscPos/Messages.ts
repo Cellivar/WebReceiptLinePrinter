@@ -1,3 +1,4 @@
+/// <reference types="vitest/importMeta.d.ts" />
 import * as Cmds from '../../../Documents/index.js'
 import { MessageParsingError, type IMessageHandlerResult } from "../../Communication/index.js";
 import { AsciiCodeNumbers, hex } from '../../Codepages/index.js';

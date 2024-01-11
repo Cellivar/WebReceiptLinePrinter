@@ -8,9 +8,6 @@
       "DOM",
       "DOM.Iterable"
     ],
-    "types": [
-      "vitest/importMeta"
-    ],
     "skipLibCheck": false,
     "isolatedModules": true,
     "noEmit": true,
