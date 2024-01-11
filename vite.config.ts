@@ -13,10 +13,14 @@ export default defineConfig({
     },
     minify: false,
   },
+  define: {
+    'import.meta.vitest': 'undefined',
+  },
   plugins: [dts(), eslint({
     failOnError: false
   })],
   test: {
+    includeSource: ['src/**/*.{js,ts}'],
     coverage: {
       // you can include other reporters, but 'json-summary' is required, json is recommended
       reporter: ['text', 'json-summary', 'json'],
