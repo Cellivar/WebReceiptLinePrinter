@@ -15,9 +15,10 @@ export function clampToRange(value: number, min: number, max: number) {
 export function numberInRange(
   str: string,
   min?: number,
-  max?: number) {
-  if (!/^\d+$/.test(str)) {
-    return;
+  max?: number,
+  defaultValue?: number) {
+  if (!/^-?\d+$/.test(str)) {
+    return defaultValue;
   }
   const val = Number(str);
   if (min !== undefined && val < min) {
