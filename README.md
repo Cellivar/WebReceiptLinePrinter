@@ -1,5 +1,8 @@
 # Web-ReceiptLine-Printer
 
+![NPM Version](https://img.shields.io/npm/v/web-receiptline-printer) | [![Build](https://github.com/Cellivar/WebReceiptLinePrinter/actions/workflows/build_npm.yml/badge.svg?branch=main)](https://github.com/Cellivar/WebReceiptLinePrinter/actions/workflows/build_npm.yml)
+
+
 Print receipts on receipt printers directly from your browser. No need to install drivers, extensions, or anything else.
 
 ![image](https://github.com/Cellivar/WebReceiptLinePrinter/assets/1441553/4072cc21-5d9e-4c96-a47c-feb26f81ff59)

@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: 20
       - run: npm ci --ignore-scripts
+      - run: npm run build
       - name: 'Test'
         run: npx vitest --coverage.enabled true
       - name: 'Report Coverage'
