@@ -43,18 +43,22 @@ enum MessageCandidates {
 
 type MessageCandidate = 'unknown' | 'response' | 'asb' | 'realtime' | 'header' |'xon' | 'xoff'
 
+function checkBits(value: number, xor: number, mask: number) {
+  return ((value ^ xor) & mask) === mask;
+}
+
 function getMessageCandidate(firstByte: number): MessageCandidate {
   // The basic single-byte responses can be differentiated according to this table:
 
-  // Command     | Status (bits)          | Mask
-  //             | 7  6  5  4  3  2  1  0 |
-  // -------------------------------------------
-  // GS I        | 0  *  *  0  *  *  *  * | 0x90
-  // GS r        | 0  *  *  0  *  *  *  * | 0x90
-  // DLE EOT     | 0  *  *  1  *  *  1  0 | 0x93
-  // ASB (byte1) | 0  *  *  1  *  *  0  0 | 0x93
-  // ASB (b2-4)  | 0  *  *  0  *  *  *  * | 0x90
-  // Header      | 0  *  *  1  *  *  *  1 | 0x91
+  // Command     | Status (bits)          | Mask | XOR
+  //             | 7  6  5  4  3  2  1  0 |      |
+  // --------------------------------------------------
+  // GS I        | 0  *  *  0  *  *  *  * | 0x90 | 0x90
+  // GS r        | 0  *  *  0  *  *  *  * | 0x90 | 0x90
+  // DLE EOT     | 0  *  *  1  *  *  1  0 | 0x93 | 0x81
+  // ASB (byte1) | 0  *  *  1  *  *  0  0 | 0x93 | 0x83
+  // ASB (b2-4)  | 0  *  *  0  *  *  *  * | 0x90 | 0x90
+  // Header      | 0  *  *  1  *  *  *  1 | 0x91 | 0x80
   // -------------SERIAL ONLY ------------------
   // X ON        | 0  0  0  1  0  0  0  1 | 0xFF
   // X OFF       | 0  0  0  1  0  0  1  1 | 0xFF
@@ -73,29 +77,28 @@ function getMessageCandidate(firstByte: number): MessageCandidate {
   // printer as ASB status which is consecutive 3 byte if it is
   // "0xx1xx00" [x = 0 or 1].
 
-  // So first up, build up some candidates using their mask values.
-  const maybeResponse = firstByte & 0x90;
-  const maybeASB      = firstByte & 0x93;
-  const maybeHeader   = firstByte & 0x91;
-
   // Compare what we constructed to expected patterns, paying attention to order
   // we check in to ensure we don't confuse candidates.
   switch (true) {
     // XON/XOFF must be an exact match, guaranteed to conflict with all other first bytes.
-    case (firstByte ^ MessageCandidates.XON) == MessageCandidates.XON:
+    case (firstByte === MessageCandidates.XON):
       return 'xon';
-    case (firstByte ^ MessageCandidates.XOFF) == MessageCandidates.XOFF:
+    case (firstByte === MessageCandidates.XOFF):
       return 'xoff';
+    // Everything else is a mixture of 1s and 0s, so we can't do basic AND operations.
+    // First XOR the value against the inverse of the message we're looking for.
+    // This should give us all of the bits set for the mask. AND it with the mask.
+    // If the result matches the mask then we found our packet.
     // Check bit 4
-    case (maybeResponse & MessageCandidates.Response) == MessageCandidates.Response:
+    case checkBits(firstByte, 0x90, 0x90):
       return 'response';
     // Check bit 0
-    case (maybeHeader & MessageCandidates.Header) == MessageCandidates.Header:
-      return 'header';
+    case checkBits(firstByte, 0x80, 0x91):
+      return 'header'
     // Check bit 1
-    case (maybeASB & MessageCandidates.AutoStat) == MessageCandidates.AutoStat:
+    case checkBits(firstByte, 0x83, 0x93):
       return 'asb';
-    case (maybeASB & MessageCandidates.Realtime) == MessageCandidates.Realtime:
+    case checkBits(firstByte, 0x81, 0x93):
       return 'realtime';
     default:
       return 'unknown';
@@ -221,4 +224,35 @@ export function handleEscPosMessage(
   }
 
   return result;
+}
+
+if (import.meta.vitest) {
+  const { test, expect, describe } = import.meta.vitest
+
+  describe('escpos message candidates', () => {
+    test('xon and xoff are exact', () => {
+      expect(getMessageCandidate(MessageCandidates.XON)).toBe('xon');
+      expect(getMessageCandidate(MessageCandidates.XOFF)).toBe('xoff');
+    });
+
+    test('null byte is a response', () => {
+      expect(getMessageCandidate(0x00)).toBe('response');
+    });
+
+    test('realtime byte is realtime', () => {
+      expect(getMessageCandidate(MessageCandidates.Realtime)).toBe('realtime');
+    });
+
+    test('asb byte is asb', () => {
+      expect(getMessageCandidate(MessageCandidates.AutoStat)).toBe('asb');
+    });
+
+    test('Header byte is Header', () => {
+      expect(getMessageCandidate(0x37)).toBe('header');
+    });
+
+    test('FF to be unknown', () => {
+      expect(getMessageCandidate(0xff)).toBe('unknown');
+    });
+  });
 }
