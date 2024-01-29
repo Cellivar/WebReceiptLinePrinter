@@ -10,7 +10,7 @@ import type { Codepage } from "./index.js";
 // I want to use.
 
 // This file is (c) Niels, MIT licensed and thank you Niels <3
-// I have lightly modified it to make my compiler not be sad about it.
+// I have stripped it down to just autoencode and added TS type info.
 
 export interface CodepageDefinition {
   name: string,
@@ -351,34 +351,6 @@ const definitions: Record<Codepage, CodepageDefinition> = {
   },
 };
 
-// const strings = {
-//   en: 'The quick brown fox jumps over the lazy dog.',
-//   jp: 'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム',
-//   pt: 'O próximo vôo à noite sobre o Atlântico, põe freqüentemente o único médico.',
-//   fr: 'Les naïfs ægithales hâtifs pondant à Noël où il gèle sont sûrs d\'être déçus en voyant leurs drôles d\'œufs abîmés.',
-//   sv: 'Flygande bäckasiner söka strax hwila på mjuka tuvor.',
-//   dk: 'Quizdeltagerne spiste jordbær med fløde',
-//   el: 'ξεσκεπάζω την ψυχοφθόρα βδελυγμία',
-//   tr: 'Pijamalı hasta, yağız şoföre çabucak güvendi.',
-//   ru: 'Съешь же ещё этих мягких французских булок да выпей чаю',
-//   hu: 'Árvíztűrő tükörfúrógép',
-//   pl: 'Pchnąć w tę łódź jeża lub ośm skrzyń fig',
-//   cz: 'Mohu jíst sklo, neublíží mi.',
-//   ar: 'أنا قادر على أكل الزجاج و هذا لا يؤلمني.',
-//   et: 'Ma võin klaasi süüa, see ei tee mulle midagi.',
-//   lt: 'Aš galiu valgyti stiklą ir jis manęs nežeidžia.',
-//   bg: 'Мога да ям стъкло, то не ми вреди.',
-//   is: 'Ég get etið gler án þess að meiða mig.',
-//   he: 'אני יכול לאכול זכוכית וזה לא מזיק לי.',
-//   fa: '.من می توانم بدونِ احساس درد شيشه بخورم',
-//   uk: 'Я можу їсти скло, і воно мені не зашкодить.',
-//   vi: 'Tôi có thể ăn thủy tinh mà không hại gì.',
-//   kk: 'қазақша',
-//   lv: 'Es varu ēst stiklu, tas man nekaitē.',
-//   mt: 'Nista\' niekol il-ħġieġ u ma jagħmilli xejn.',
-//   th: 'ฉันกินกระจกได้ แต่มันไม่ทำให้ฉันเจ็บ',
-// };
-
 /**
  * A library for converting Unicode to obscure single byte codepage for use with thermal printers
  */
@@ -391,85 +363,6 @@ export class CodepageEncoder {
      */
   static getEncodings() {
     return Object.keys(definitions);
-  }
-
-  /**
-     * Get test strings for the specified codepage
-     *
-     * @param  {string}   codepage  The codepage
-     * @return {array}              Return an array with one or more objects
-     *                              containing a property for the language of
-     *                              the string and a property for the string itself
-     *
-     */
-  // static getTestStrings(codepage: Codepage) {
-  //   if (typeof definitions[codepage] !== 'undefined' &&
-  //           typeof definitions[codepage].languages !== 'undefined') {
-  //     return definitions[codepage].languages.map((i) => ({language: i, string: strings[i]}));
-  //   }
-
-  //   return [];
-  // }
-
-  /**
-     * Determine if the specified codepage is supported
-     *
-     * @param  {string}   codepage  The codepage
-     * @return {boolean}            Return a boolean, true if the encoding is supported,
-     *                              otherwise false
-     *
-     */
-  static supports(codepage: Codepage): boolean {
-    if (typeof definitions[codepage] === 'undefined') {
-      return false;
-    }
-
-    if (typeof definitions[codepage].chars === 'undefined') {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-     * Encode a string in the specified codepage
-     *
-     * @param  {string}   input     Text that needs encoded to the specified codepage
-     * @param  {string}   codepage  The codepage
-     * @return {Uint8Array}         Return an array of bytes with the encoded string
-     *
-     */
-  static encode(input: string, codepage: Codepage) {
-    const output = new Uint8Array(input.length);
-
-    let chars = '\u0000'.repeat(128);
-    let offset = 128;
-
-    if (typeof definitions[codepage] !== 'undefined' &&
-            typeof definitions[codepage].chars !== 'undefined') {
-      chars = definitions[codepage].chars;
-      offset = definitions[codepage].offset;
-    }
-
-    for (let c = 0; c < input.length; c++) {
-      const codepoint = input.codePointAt(c) ?? this.questionMark;
-
-      if (codepoint < 128) {
-        output[c] = codepoint;
-      } else {
-        const position = chars.indexOf(input[c]);
-
-        if (position !== -1) {
-          output[c] = offset + position;
-        } else if (codepoint < 256 && (codepoint < offset || codepoint >= offset + chars.length)) {
-          output[c] = codepoint;
-        } else {
-          output[c] = this.questionMark;
-        }
-      }
-    }
-
-    return output;
   }
 
   private static questionMark = 0x3f;

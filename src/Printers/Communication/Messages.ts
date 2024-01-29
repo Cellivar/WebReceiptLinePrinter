@@ -1,4 +1,5 @@
-import { WebReceiptLineError, type IDeviceInformation } from "../../index.js";
+import { WebReceiptLineError } from "../../index.js";
+import type { IDeviceInformation } from "web-device-mux";
 
 export type PrinterMessage
   = ISettingUpdateMessage

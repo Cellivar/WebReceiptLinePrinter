@@ -1,6 +1,7 @@
 import { type CompiledDocument, type IDocument, Transaction } from "../Documents/index.js";
 import * as Cmds from "../Documents/index.js";
-import { UsbDeviceChannel, type IDeviceChannel, type IDeviceCommunicationOptions, InputMessageListener, type IHandlerResponse, DeviceCommunicationError, DeviceNotReadyError, type IStatusMessage, type IErrorMessage, type IDevice, deviceInfoToOptionsUpdate } from "./Communication/index.js";
+import { type IStatusMessage, type IErrorMessage, deviceInfoToOptionsUpdate } from "./Communication/index.js";
+import { UsbDeviceChannel, type IDeviceChannel, type IDeviceCommunicationOptions, InputMessageListener, type IHandlerResponse, DeviceCommunicationError, DeviceNotReadyError, type IDevice } from "web-device-mux";
 import { transpileDocument } from "../Documents/DocumentTranspiler.js";
 import { EscPos, type CommandSet, asciiToDisplay } from "./Languages/index.js";
 import { PrinterOptions } from "./Options/index.js";
@@ -244,7 +245,7 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
     return true;
   }
 
-  private parseMessage(input: Uint8Array[]): IHandlerResponse<Uint8Array> {
+  private async parseMessage(input: Uint8Array[]): Promise<IHandlerResponse<Uint8Array>> {
     if (this._commandSet === undefined) { return { remainderData: input } }
     let msg = this._commandSet.combineCommands(...input);
     if (msg.length === 0) { return {}; }

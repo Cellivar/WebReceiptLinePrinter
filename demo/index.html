@@ -27,7 +27,8 @@
     <script type="importmap">
         {
           "imports": {
-            "web-receiptline-printer": "../src/index.ts"
+            "web-receiptline-printer": "../src/index.ts",
+            "web-device-mux": "https://cellivar.github.io/WebDeviceMux/src/index.ts"
           }
         }
     </script>
@@ -76,11 +77,17 @@
     <!-- Here's some actual demo code. Note that it is typescript, not javascript. -->
     <script type="text/typescript" id="cool_demo_code_to_show_off_the_lib">
       // First import the lib!
+      // This is our lib in this repo here
       import * as WebReceipt from 'web-receiptline-printer';
+      // This is a utility lib we'll be using that makes it easier to use devices.
+      import * as WebDevices from 'web-device-mux';
 
       // For this demo we're going to make use of the USB printer manager
       // so it can take care of concerns like the USB connect and disconnect events.
-      const printerMgr = new WebReceipt.UsbDeviceManager<WebReceipt.ReceiptPrinter>(
+      // It's a handy-dandy feature included from the web-device-mux library!
+      // We need to tell it what type of device it's managing, and how to filter
+      // USB devices that are receipt printers.
+      const printerMgr = new WebDevices.UsbDeviceManager<WebReceipt.ReceiptPrinter>(
         window.navigator.usb,
         WebReceipt.ReceiptPrinter.fromUSBDevice,
         {
@@ -90,8 +97,10 @@
             // Limit the USB devices we try to connect to.
             filters: [
               {
-                vendorId: 0x04B8, // Epson
-                //productId: 0x0202, // TM-T88V
+                vendorId: 0x2730, // Citizen
+              },
+              {
+                vendorId: 0x04B8 // Epson
               }
             ]
           }
@@ -135,7 +144,7 @@
       // The app's logic is wrapped in a class just for ease of reading.
       class BasicDocumentPrinterApp {
         constructor(
-          private manager: WebReceipt.UsbDeviceManager<WebReceipt.ReceiptPrinter>,
+          private manager: WebDevices.UsbDeviceManager<WebReceipt.ReceiptPrinter>,
           private btnContainer: HTMLElement,
           private labelForm: HTMLElement,
           private labelFormInstructions: HTMLElement,
