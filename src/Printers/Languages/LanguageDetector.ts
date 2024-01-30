@@ -1,4 +1,4 @@
-import type { IDeviceInformation } from "../Communication/index.js";
+import type { IDeviceInformation } from "web-device-mux";
 import { type PrinterCommandLanguage } from "./index.js";
 
 export interface ILanguageDetector {

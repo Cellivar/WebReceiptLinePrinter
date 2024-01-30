@@ -1,4 +1,5 @@
 import * as WebReceipt from '../src/index.js';
+import * as WebDevices from 'web-device-mux';
 // This file exists to test the index.html's typescript. Unfortunately there isn't
 // a good way to configure Visual Studio Code to, well, treat it as typescript.
 ////////////////////////////////////////////////////////////////////////////////
@@ -6,9 +7,12 @@ import * as WebReceipt from '../src/index.js';
 // First import the lib!
 //import * as WebReceipt from 'web-receiptline-printer';
 
-// For this demo we're going to make use of the USB printer manager
-// so it can take care of concerns like the USB connect and disconnect events.
-const printerMgr = new WebReceipt.UsbDeviceManager<WebReceipt.ReceiptPrinter>(
+      // For this demo we're going to make use of the USB printer manager
+      // so it can take care of concerns like the USB connect and disconnect events.
+      // It's a handy-dandy feature included from the web-device-mux library!
+      // We need to tell it what type of device it's managing, and how to filter
+      // USB devices that are receipt printers.
+      const printerMgr = new WebDevices.UsbDeviceManager<WebReceipt.ReceiptPrinter>(
   window.navigator.usb,
   WebReceipt.ReceiptPrinter.fromUSBDevice,
   {
@@ -18,8 +22,10 @@ const printerMgr = new WebReceipt.UsbDeviceManager<WebReceipt.ReceiptPrinter>(
       // Limit the USB devices we try to connect to.
       filters: [
         {
-          vendorId: 0x04B8, // Epson
-          //productId: 0x0202, // TM-T88V
+          vendorId: 0x2730, // Citizen
+        },
+        {
+          vendorId: 0x04B8 // Epson
         }
       ]
     }
@@ -63,7 +69,7 @@ printerMgr.addEventListener('disconnectedDevice', ({ detail }) => {
 // The app's logic is wrapped in a class just for ease of reading.
 class BasicDocumentPrinterApp {
   constructor(
-    private manager: WebReceipt.UsbDeviceManager<WebReceipt.ReceiptPrinter>,
+    private manager: WebDevices.UsbDeviceManager<WebReceipt.ReceiptPrinter>,
     private btnContainer: HTMLElement,
     private labelForm: HTMLElement,
     private labelFormInstructions: HTMLElement,
