@@ -35,6 +35,7 @@ function promiseWithTimeout<T>(
   return Promise.race<T>([promise, timeout]);
 }
 
+/** A class for working with a receipt printer. */
 export class ReceiptPrinter extends EventTarget implements IDevice {
   private _channel: IDeviceChannel<Uint8Array, Uint8Array>;
 
@@ -71,7 +72,10 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
   }
 
   /** Construct a new printer from a given USB device. */
-  static fromUSBDevice(device: USBDevice, options: IDeviceCommunicationOptions): ReceiptPrinter {
+  static fromUSBDevice(
+    device: USBDevice,
+    options: IDeviceCommunicationOptions
+  ): ReceiptPrinter {
     return new ReceiptPrinter(new UsbDeviceChannel(device, options), options);
   }
 
@@ -97,7 +101,7 @@ export class ReceiptPrinter extends EventTarget implements IDevice {
           new Cmds.GetStatus(),
         ]
       });
-    })
+    });
   }
 
   public addEventListener<T extends keyof ReceiptPrinterEventMap>(

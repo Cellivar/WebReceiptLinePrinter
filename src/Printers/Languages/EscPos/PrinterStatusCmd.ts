@@ -93,7 +93,7 @@ export function parseTransmitPrinterStatus(
     case 'PaperSensorStatus':
       status.paperLow = hasFlag(byte, PaperSensorByte.RollPaperNearEnd);
       error.paperOut = hasFlag(byte, PaperSensorByte.RollPaperEnd);
-      error.isErrored = (true && error.paperOut);
+      error.isErrored = error.paperOut;
       break;
     case 'DrawerKickStatus':
       status.drawerKickStatus = hasFlag(byte, DrawerKickByte.DrawerKickOut);

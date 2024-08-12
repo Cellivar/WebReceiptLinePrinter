@@ -1,12 +1,10 @@
 import * as Cmds from "../../Documents/index.js";
 import type { IMessageHandlerResult } from "../Communication/index.js";
 import type { IMediaOptions } from "../Options/index.js";
-import type { CommandSet, IPrinterExtendedCommandMapping, TranspileCommandDelegate, TranspiledDocumentState } from "../../Documents/CommandSet.js";
-import { TranspileDocumentError } from "../../Documents/TranspileCommandError.js";
 import type { PrinterCommandLanguage } from "./index.js";
 
 /** A class to transpile commands as raw 8-bit commands to a printer. */
-export abstract class RawCommandSet implements CommandSet<Uint8Array> {
+export abstract class RawCommandSet implements Cmds.CommandSet<Uint8Array> {
   /** Encode a raw string command into a Uint8Array according to the command language rules. */
   public abstract encodeCommand(str?: string, withNewline?: boolean): Uint8Array;
 
@@ -22,13 +20,13 @@ export abstract class RawCommandSet implements CommandSet<Uint8Array> {
     return this.cmdLanguage;
   }
 
-  public abstract getNewTranspileState(media: IMediaOptions): TranspiledDocumentState;
+  public abstract getNewTranspileState(media: IMediaOptions): Cmds.TranspiledDocumentState;
 
-  protected extendedCommandMap = new Map<symbol, TranspileCommandDelegate<Uint8Array>>;
+  protected extendedCommandMap = new Map<symbol, Cmds.TranspileCommandDelegate<Uint8Array>>;
 
   protected constructor(
     implementedLanguage: PrinterCommandLanguage,
-    extendedCommands: Array<IPrinterExtendedCommandMapping<Uint8Array>> = []
+    extendedCommands: Array<Cmds.IPrinterExtendedCommandMapping<Uint8Array>> = []
   ) {
     this.cmdLanguage = implementedLanguage;
     extendedCommands.forEach(c => this.extendedCommandMap.set(c.extendedTypeSymbol, c.delegate));
@@ -43,16 +41,16 @@ export abstract class RawCommandSet implements CommandSet<Uint8Array> {
 
   public abstract transpileCommand(
     cmd: Cmds.IPrinterCommand,
-    docState: TranspiledDocumentState
-  ): Uint8Array | TranspileDocumentError;
+    docState: Cmds.TranspiledDocumentState
+  ): Uint8Array | Cmds.TranspileDocumentError;
 
   protected extendedCommandHandler(
     cmd: Cmds.IPrinterCommand,
-    docState: TranspiledDocumentState
+    docState: Cmds.TranspiledDocumentState
   ) {
     const lookup = (cmd as Cmds.IPrinterExtendedCommand).typeExtended;
     if (!lookup) {
-      throw new TranspileDocumentError(
+      throw new Cmds.TranspileDocumentError(
         `Command '${cmd.constructor.name}' did not have a value for typeExtended. If you're trying to implement a custom command check the documentation.`
       )
     }
@@ -60,7 +58,7 @@ export abstract class RawCommandSet implements CommandSet<Uint8Array> {
     const cmdHandler = this.extendedCommandMap.get(lookup);
 
     if (cmdHandler === undefined) {
-      throw new TranspileDocumentError(
+      throw new Cmds.TranspileDocumentError(
         `Unknown command '${cmd.constructor.name}' was not found in the command map for ${this.commandLanguage} command language. If you're trying to implement a custom command check the documentation for correctly adding mappings.`
       );
     }

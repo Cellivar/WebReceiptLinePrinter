@@ -23,8 +23,3 @@ export class CompiledDocument<T> {
     public readonly transactions: Transaction<T>[]
   ) {}
 }
-
-/** Describes a class capable of transpiling documents */
-export interface IDocumentTranspiler<T> {
-  transpileDocument(doc: IDocument): CompiledDocument<T>;
-}
