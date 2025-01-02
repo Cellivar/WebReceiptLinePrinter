@@ -2015,7 +2015,11 @@ limitations under the License.
           return r;
       },
       // generate CODE128 data:
-      code128: data => data.replace(/((?!^[\x00-\x7f]+$).)*/, '').replace(/%/g, '%0').replace(/[\x00-\x1f]/g, m => '%' + String.fromCharCode(m.charCodeAt(0) + 64)).replace(/\x7f/g, '%5')
+      code128: data => data
+        .replace(/((?!^[\x00-\x7f]+$).)*/, '')
+        .replace(/%/g, '%0')
+        .replace(/[\x00-\x1f]/g, m => '%' + String.fromCharCode(m.charCodeAt(0) + 64))
+        .replace(/\x7f/g, '%5')
   };
 
   //
@@ -2660,14 +2664,18 @@ limitations under the License.
       base: Object.assign({}, _base),
       svg: Object.assign({}, _base, _svg),
       text: Object.assign({}, _base, _text),
+
       escpos: Object.assign({}, _base, _escpos, _thermal),
       epson: Object.assign({}, _base, _escpos, _thermal),
+
       sii: Object.assign({}, _base, _escpos, _thermal, _sii),
       citizen: Object.assign({}, _base, _escpos, _thermal, _citizen),
       fit: Object.assign({}, _base, _escpos, _thermal, _fit),
       impact: Object.assign({}, _base, _escpos, _impact),
       impactb: Object.assign({}, _base, _escpos, _impact, _fontb),
+
       generic: Object.assign({}, _base, _escpos, _thermal, _generic),
+
       starsbcs: Object.assign({}, _base, _star, _sbcs),
       starmbcs: Object.assign({}, _base, _star, _mbcs),
       starmbcs2: Object.assign({}, _base, _star, _mbcs2),

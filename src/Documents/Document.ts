@@ -1,25 +1,25 @@
-import type { PrinterCommandLanguage } from "../Printers/Languages/index.js";
-import type { CommandEffectFlags, IPrinterCommand } from "./Commands.js";
+import * as Conf from '../Configs/index.js';
+import * as Cmds from '../Commands/index.js';
 
-/** A document of printer commands, to be compiled for a specific printer. */
+/** A prepared document, ready to be compiled and sent. */
 export interface IDocument {
   /** Gets the series of commands this document contains. */
-  commands: ReadonlyArray<IPrinterCommand>;
+  commands: ReadonlyArray<Cmds.IPrinterCommand>;
 }
 
-/** Stream of commands, optionally ended by an awaited command. */
-export class Transaction<T>{
+/** Stream of commands, with zero or more commands expected to return messages. */
+export class Transaction{
   constructor(
-    public readonly commands: T,
-    public readonly awaitedCommand: IPrinterCommand | undefined,
+    public readonly commands: Conf.MessageArrayLike,
+    public readonly awaitedCommands: Cmds.IPrinterCommand[],
   ) {}
 }
 
 /** Compiled document of commands ready to be sent to a printer which supports the PCL. */
-export class CompiledDocument<T> {
+export class CompiledDocument {
   constructor(
-    public readonly language: PrinterCommandLanguage,
-    public readonly effects: CommandEffectFlags,
-    public readonly transactions: Transaction<T>[]
+    public readonly language: Conf.PrinterCommandLanguage,
+    public readonly effects: Cmds.CommandEffectFlags,
+    public readonly transactions: Transaction[]
   ) {}
 }
