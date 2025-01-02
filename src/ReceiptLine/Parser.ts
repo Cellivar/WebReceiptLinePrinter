@@ -1,7 +1,7 @@
 /* eslint-disable no-control-regex */
-import * as Cmds from "../Documents/index.js"
-import { clampToRange, numberInRange, repeat } from "../NumericRange.js";
-import type { IMediaOptions } from "../Printers/Options/index.js";
+import * as Cmds from '../Commands/index.js';
+import { repeat, numberInRange, clampToRange } from '../Util/NumericRange.js';
+import type { IDocument } from '../Documents/index.js';
 
 type LineRuleNext = "stopped" | "addVertical" | "addHorizontal" | "initialize"
 
@@ -428,10 +428,10 @@ function columnsToLine(
 /**
  * Transform ReceiptLine document to command document.
  * @param {string} doc ReceiptLine document
- * @param {IMediaOptions} mediaOptions Label media configuration
+ * @param {Cmds.PrinterConfig} printerConfig Printer configuration
  * @returns {IDocument} PCL document to give to a printer.
  */
-export function parseReceiptLineToDocument(doc: string, mediaOptions: IMediaOptions): Cmds.IDocument {
+export function parseReceiptLineToDocument(doc: string, printerConfig: Cmds.PrinterConfig): IDocument {
   // initialize state variables
   const state: parseState = {
     wrap: true,
@@ -453,7 +453,7 @@ export function parseReceiptLineToDocument(doc: string, mediaOptions: IMediaOpti
   const res: Cmds.IPrinterCommand[] = doc
     .normalize()
     .split(/\n|\r\n|\r/)
-    .flatMap(line => createLine(parseLine(line, state), mediaOptions, state));
+    .flatMap(line => createLine(parseLine(line, state), printerConfig, state));
 
   // Clean up any lingering table formatting
   switch (state.nextRuleOperation) {
@@ -575,13 +575,13 @@ function parseEscape(str: string) {
 /**
  * Generate commands from line objects.
  * @param {object} line parsed line object
- * @param {object} mediaOptions printer configuration
+ * @param {object} printerConfig printer configuration
  * @param {object} state state variables
  * @returns {string} printer command fragment or SVG image fragment
  */
 function createLine(
   line: lineElement[],
-  mediaOptions: IMediaOptions,
+  printerConfig: Cmds.PrinterConfig,
   state: parseState
 ): Cmds.IPrinterCommand[] {
   const lineCmds: Cmds.IPrinterCommand[] = [];
@@ -598,8 +598,8 @@ function createLine(
       0,
       Math.floor(
         firstColumn.border < 0
-        ? (mediaOptions.charactersPerLine - 1) / 2
-        : (mediaOptions.charactersPerLine + firstColumn.border) / (firstColumn.border + 1)
+        ? (printerConfig.charactersPerLine - 1) / 2
+        : (printerConfig.charactersPerLine + firstColumn.border) / (firstColumn.border + 1)
       )
     );
   }
@@ -609,7 +609,7 @@ function createLine(
   // Print space explicitly occupied
   const reservedWidth = fixedSizeColumns.reduce((a, el) => a + el.width, 0);
   // Remaining space for auto-sizing
-  let freeWidth = mediaOptions.charactersPerLine - reservedWidth;
+  let freeWidth = printerConfig.charactersPerLine - reservedWidth;
   // Borders occupy free space
   if (isTextLine && columns.length > 0) {
     freeWidth -= firstColumn.border < 0
@@ -630,7 +630,7 @@ function createLine(
 
   // Calculate margins for entire line.
   const left = Math.floor(freeWidth * getLeftAlignmentMultiplier(firstColumn.lineAlignment));
-  const width = mediaOptions.charactersPerLine - freeWidth;
+  const width = printerConfig.charactersPerLine - freeWidth;
   const right = freeWidth - left;
   console.warn(`Line margins are | ${left} [ ${width} ] ${right} |`);
 
@@ -659,7 +659,7 @@ function createLine(
         const widthDiff = width - state.rules.width;
         const minLeftMargin = Math.min(left, state.rules.left);
         const minRightMargin = Math.min(right, state.rules.right);
-        const maxSpace = mediaOptions.charactersPerLine - minLeftMargin - minRightMargin;
+        const maxSpace = printerConfig.charactersPerLine - minLeftMargin - minRightMargin;
         lineCmds.push(
           ...resetFormattingCmds(minLeftMargin, maxSpace, minRightMargin),
           new Cmds.TextDraw(

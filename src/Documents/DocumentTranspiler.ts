@@ -1,38 +1,48 @@
-import * as Cmds from "./index.js";
-import type { CommandSet, TranspiledDocumentState } from "./CommandSet.js";
-import { TranspileDocumentError } from "./TranspileCommandError.js";
+import * as Util from '../Util/index.js';
+import * as Conf from '../Configs/index.js';
+import * as Cmds from '../Commands/index.js';
+import { CompiledDocument, Transaction, type IDocument } from './Document.js';
 
 type PrecompiledTransaction = {
-  commands: Array<Cmds.IPrinterCommand>;
-  waitCommand?: Cmds.IPrinterCommand;
+  commands: Cmds.IPrinterCommand[];
+  waitCommands: Cmds.IPrinterCommand[];
 };
 
-export function transpileDocument<TOutput>(
-  doc: Cmds.IDocument,
-  commandSet: CommandSet<TOutput>,
-  documentMetadata: TranspiledDocumentState,
-): Readonly<Cmds.CompiledDocument<TOutput>> {
+interface RawCommandForm {
+  effects: Cmds.CommandEffectFlags;
+  transactions: PrecompiledTransaction[];
+  withinForm: boolean;
+}
 
-  const cmdsWithinDoc = [
-    ...commandSet.documentStartCommands,
-    ...doc.commands,
-    ...commandSet.documentEndCommands,
-  ];
-  const { transactions, effects } = splitTransactions(cmdsWithinDoc, commandSet);
+export function transpileDocument(
+  doc: IDocument,
+  commandSet: Cmds.CommandSet<Conf.MessageArrayLike>,
+  documentMetadata: Cmds.TranspiledDocumentState,
+  commandReorderBehavior: Cmds.CommandReorderBehavior = Cmds.CommandReorderBehavior.afterAllForms
+): Readonly<CompiledDocument> {
+
+  const forms = splitTransactionsAndForms(doc.commands, commandSet, commandReorderBehavior);
+
+  // Wait why do we throw away the form data here?
+  // ZPL has some advanced form processing concepts that aren't implemented in
+  // this library yet, and that code was annoying to figure out. It hangs out
+  // here until the advanced form processing can be implemented later.
+  // TODO: Handle separate forms instead of mooshing them together.
+  const { transactions, effects } = combineForms(forms);
 
   const commandsWithMaybeErrors = transactions
     .map((trans) => compileTransaction(trans, commandSet, documentMetadata));
 
   const errs = commandsWithMaybeErrors.flatMap(ce => ce.errors);
   if (errs.length > 0) {
-    throw new TranspileDocumentError(
+    throw new Cmds.TranspileDocumentError(
       'One or more validation errors occurred transpiling the document.',
       errs
     );
   }
 
   return Object.freeze(
-    new Cmds.CompiledDocument(
+    new CompiledDocument(
       commandSet.commandLanguage,
       effects,
       commandsWithMaybeErrors.map(c => c.transaction)
@@ -40,47 +50,23 @@ export function transpileDocument<TOutput>(
   );
 }
 
-function compileTransaction<TOutput>(
-  trans: PrecompiledTransaction,
-  commandSet: CommandSet<TOutput>,
-  docState: TranspiledDocumentState,
-): {
-  transaction: Cmds.Transaction<TOutput>,
-  errors: TranspileDocumentError[]
-} {
-  const {cmds, errors} = trans.commands
-    .map((cmd) => commandSet.transpileCommand(cmd, docState))
-    .reduce((a, cmd) => {
-      if (cmd instanceof TranspileDocumentError) {
-        a.errors.push(cmd);
-      } else {
-        a.cmds.push(cmd);
-      }
-      return a;
-    }, {
-      cmds: new Array<TOutput>,
-      errors: new Array<TranspileDocumentError>,
-    });
-
-  return {
-    transaction: new Cmds.Transaction<TOutput>(
-      commandSet.combineCommands(...cmds),
-      trans.waitCommand
-    ),
-    errors
-  };
-}
-
-function splitTransactions<TOutput>(
+function splitTransactionsAndForms(
   commands: ReadonlyArray<Cmds.IPrinterCommand>,
-  commandSet: CommandSet<TOutput>,
-): {
-  transactions: PrecompiledTransaction[];
-  effects: Cmds.CommandEffectFlags
-} {
-  const effects = new Cmds.CommandEffectFlags();
-  const transactions: PrecompiledTransaction[] = [];
-  let currentTrans: Cmds.IPrinterCommand[] = [];
+  commandSet: Cmds.CommandSet<Conf.MessageArrayLike>,
+  reorderBehavior: Cmds.CommandReorderBehavior
+): RawCommandForm[] {
+  const forms: Array<RawCommandForm> = [];
+  const reorderedCommands: Array<Cmds.IPrinterCommand> = [];
+
+  let currentTrans: PrecompiledTransaction = {
+    commands: [],
+    waitCommands: []
+  };
+  let currentForm: RawCommandForm = {
+    transactions: [],
+    withinForm: false,
+    effects: new Cmds.CommandEffectFlags(),
+  }
 
   // We may need to add new commands while iterating, create a stack.
   const commandStack = commands.toReversed();
@@ -98,27 +84,188 @@ function splitTransactions<TOutput>(
       continue;
     }
 
+    if (currentForm.withinForm) {
+      if (command.type === "StartReceipt") {
+        // Assume they meant to close the previous form and start a new one.
+        // Insert the missing EndLabel and go back through.
+        commandStack.push(command);
+        commandStack.push(new Cmds.EndReceipt());
+        continue;
+      } else if (command.type === "EndReceipt") {
+        currentForm.withinForm = false;
+      } else if (commandSet.isCommandNonFormCommand(command)) {
+        // Some commands won't work within a form, move them out according to the
+        // selected behavior.
+        switch (reorderBehavior) {
+          default:
+            Util.exhaustiveMatchGuard(reorderBehavior);
+            break;
+          case Cmds.CommandReorderBehavior.afterAllForms:
+          case Cmds.CommandReorderBehavior.beforeAllForms:
+            reorderedCommands.push(command);
+            // Replace with a placeholder in case this is the last command
+            commandStack.push(new Cmds.NoOp());
+            continue;
+          case Cmds.CommandReorderBehavior.closeForm:
+            if (currentForm.withinForm) {
+              // The label wasn't closed so we must do it ourselves. Add a command
+              // to close the label on the stack and send it back around.
+              commandStack.push(command);
+              commandStack.push(new Cmds.EndReceipt());
+              continue;
+            }
+            break;
+          case Cmds.CommandReorderBehavior.throwError:
+            if (currentForm.withinForm) {
+              throw new Cmds.TranspileDocumentError("Non-form command present within a document form and Command Reorder Behavior was set to throw errors.");
+            }
+            break;
+        }
+      }
+
+    } else {
+      if (command.type === "StartReceipt") {
+        currentForm.withinForm = true;
+      } else if (command.type === "EndReceipt") {
+        // Spurious EndLabel?
+        commandStack.push(new Cmds.NoOp());
+        continue;
+      } else if (!commandSet.isCommandNonFormCommand(command)) {
+        // Conversely, if we're outside a form and the command should be in a form
+        // we start a form for it.
+        commandStack.push(command);
+        commandStack.push(new Cmds.StartReceipt());
+        continue;
+      }
+    }
+
     // Record the command in the transpile buffer.
-    currentTrans.push(command);
-    command.effectFlags.forEach(f => effects.add(f));
+    if (command.type !== "NoOp") {
+      currentTrans.commands.push(command);
+      command.effectFlags.forEach(f => currentForm.effects.add(f));
+    }
 
     if (command.effectFlags.has("waitsForResponse")) {
-      // This command expects the printer to provide feedback. We should pause
-      // sending more commands until we get its response, which could take some
-      // amount of time.
-      // This is the end of our transaction.
-      transactions.push({
-        commands: currentTrans,
-        waitCommand: command,
-      });
-      currentTrans = [];
+      // This command expects the printer to provide feedback.
+      // Mark it as awaited in Valhalla.
+      currentTrans.waitCommands.push(command);
+      if (!currentForm.withinForm) {
+        // We have an awaited command and we're outside a form, this is a great
+        // spot to segment a transaction so we can wait for the printer's response.
+        currentForm.transactions.push(currentTrans);
+        currentTrans = {
+          commands: [],
+          waitCommands: []
+        };
+      }
+    }
+
+    if (command.type === "EndReceipt") {
+      if (currentTrans.commands.length > 0) {
+        currentForm.transactions.push(currentTrans);
+        currentTrans = {
+          commands: [],
+          waitCommands: []
+        };
+      }
+      forms.push(currentForm);
+      currentForm = {
+        transactions: [],
+        withinForm: false,
+        effects: new Cmds.CommandEffectFlags(),
+      }
+    }
+
+    // If we're about to close up shop because this is the last command let's
+    // check a few bookkeeping items are in order.
+    if (commandStack.length === 0) {
+      // If we didn't close out the current form we should now.
+      if (currentForm.withinForm) {
+        commandStack.push(new Cmds.EndReceipt());
+        continue;
+      }
+      // If we have commands in a transaction buffer close that too.
+      if (currentTrans.commands.length > 0) {
+        currentForm.transactions.push(currentTrans);
+        currentTrans = {
+          commands: [],
+          waitCommands: []
+        };
+      }
+      // And if the current form has any contents close it out.
+      if (currentForm.transactions.length > 0) {
+        forms.push(currentForm);
+      }
     }
   } while (commandStack.length > 0)
 
-  if (currentTrans.length > 0) {
-    currentTrans.push();
-    transactions.push({ commands: currentTrans });
+  if (reorderedCommands.length > 0) {
+    // The reordered commands should only be non-form commands, so it should be
+    // safe to throw an error about it.
+    const reorderedForms = splitTransactionsAndForms(
+      reorderedCommands,
+      commandSet,
+      Cmds.CommandReorderBehavior.throwError);
+    switch (reorderBehavior) {
+      default:
+        Util.exhaustiveMatchGuard(reorderBehavior);
+        break;
+      case Cmds.CommandReorderBehavior.beforeAllForms:
+        reorderedForms.reverse().forEach(f => forms.unshift(f));
+        break;
+      case Cmds.CommandReorderBehavior.afterAllForms:
+      case Cmds.CommandReorderBehavior.closeForm:
+      case Cmds.CommandReorderBehavior.throwError:
+        reorderedForms.forEach(f => forms.push(f));
+        break;
+    }
   }
 
-  return { transactions, effects }
+  return forms;
+}
+
+function compileTransaction(
+  trans: PrecompiledTransaction,
+  commandSet: Cmds.CommandSet<Conf.MessageArrayLike>,
+  docState: Cmds.TranspiledDocumentState,
+): {
+  transaction: Transaction,
+  errors: Cmds.TranspileDocumentError[]
+} {
+  const {cmds, errors} = trans.commands
+    .map((cmd) => commandSet.transpileCommand(cmd, docState))
+    .reduce((a, cmd) => {
+      if (cmd instanceof Cmds.TranspileDocumentError) {
+        a.errors.push(cmd);
+      } else {
+        a.cmds.push(cmd);
+      }
+      return a;
+    }, {
+      cmds: new Array<Conf.MessageArrayLike>,
+      errors: new Array<Cmds.TranspileDocumentError>,
+    });
+
+  return {
+    transaction: new Transaction(
+      commandSet.combineCommands(commandSet.documentStartPrefix, ...cmds, commandSet.documentEndSuffix),
+      trans.waitCommands
+    ),
+    errors
+  };
+}
+
+function combineForms(forms: RawCommandForm[]): RawCommandForm {
+  const result: RawCommandForm = {
+    transactions: [],
+    withinForm: false,
+    effects: new Cmds.CommandEffectFlags(),
+  }
+
+  forms.forEach(f => {
+    result.transactions.push(...f.transactions);
+    f.effects.forEach(e => result.effects.add(e));
+  });
+
+  return result;
 }
