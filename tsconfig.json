@@ -20,7 +20,9 @@
     "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
     "verbatimModuleSyntax": true,
-    "incremental": true
+    "noImplicitOverride": true,
+    "incremental": true,
+    "resolveJsonModule": true
   },
   "include": [
     "src"
