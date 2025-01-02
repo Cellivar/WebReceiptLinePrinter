@@ -1,10 +1,7 @@
-import * as Cmds from "../../../Documents/index.js";
-import { MessageParsingError, type IMessageHandlerResult, type ISettingUpdateMessage } from "../../Communication/index.js";
-import { AsciiCodeNumbers } from "../../Codepages/index.js";
-import { EscPos, awaitsEffect } from "./EscPos.js";
-import { hasFlag, sliceToNull, type EscPosDocState } from "./index.js";
-import type { CommandSet } from "../../../Documents/CommandSet.js";
-import { PrinterCommandLanguages } from "../index.js";
+import * as Util from '../../Util/index.js';
+import * as Conf from '../../Configs/index.js';
+import * as Cmds from '../../Commands/index.js';
+import { sliceToNull } from '../../Util/StringUtils.js';
 
 export type TransmitPrinterIdCmd
   = 'ModelID'   // 1, 49
@@ -35,28 +32,32 @@ export const transmitPrinterIdCmdMap: Record<TransmitPrinterIdCmd, number> = {
   //InfoBModelSpecific111: 111
 }
 
-export class TransmitPrinterId implements Cmds.IPrinterExtendedCommand {
-  public static typeE = Symbol("TransmitPrinterId");
-  typeExtended                 = TransmitPrinterId.typeE;
-  commandLanguageApplicability = new PrinterCommandLanguages([EscPos]);
+export class CmdTransmitPrinterId implements Cmds.IPrinterExtendedCommand {
+  public static typeE = Symbol("CmdTransmitPrinterId");
+  typeExtended                 = CmdTransmitPrinterId.typeE;
+  commandLanguageApplicability = Conf.PrinterCommandLanguage.escPos;
   name                         = 'Transmit Printer ID'
   type                         = "CustomCommand" as const;
-  effectFlags                  = awaitsEffect;
+  effectFlags                  = Cmds.AwaitsEffect;
   toDisplay() { return this.name; }
 
   constructor(public readonly subcommand: TransmitPrinterIdCmd) {}
 }
 
-export function handleTransmitPrinterId(
-  cmd: Cmds.IPrinterCommand,
-  _docState: EscPosDocState,
-  commandSet: CommandSet<Uint8Array>
+export const mappingCmdTransmitPrinterId: Cmds.IPrinterCommandMapping<Uint8Array> = {
+  commandType: CmdTransmitPrinterId.typeE,
+  transpile: handleCmdTransmitPrinterId,
+  readMessage: parseCmdTransmitPrinterId,
+}
+
+export function handleCmdTransmitPrinterId(
+  cmd: Cmds.IPrinterCommand
 ): Uint8Array {
-  const command = cmd as TransmitPrinterId;
+  const command = cmd as CmdTransmitPrinterId;
   const argnum = transmitPrinterIdCmdMap[command.subcommand];
   return new Uint8Array([
     // GS I <arg>
-    AsciiCodeNumbers.GS, ...commandSet.encodeCommand('I'), argnum,
+    Util.AsciiCodeNumbers.GS, 0x49, argnum,
   ]);
 }
 
@@ -81,7 +82,7 @@ const PrinterInfoHeaderB = 0x5f;
 function setSingleByteData(
   firstByte: number,
   subcommand: TransmitPrinterIdCmd,
-  config: ISettingUpdateMessage
+  config: Cmds.ISettingUpdateMessage
 ) {
   switch (subcommand) {
     // Printer ID
@@ -94,9 +95,13 @@ function setSingleByteData(
       // config.printerModelId = firstByte;
       break;
     case 'TypeID':
-      config.hasMultiByteSupport = hasFlag(firstByte, PrinterId.hasMultiByteSupport);
-      config.hasAutocutter = hasFlag(firstByte, PrinterId.hasAutocutter);
-      config.hasDmdConnected = hasFlag(firstByte, PrinterId.hasDmdConnected);
+      if (Util.hasFlag(firstByte, PrinterId.hasAutocutter)) {
+        // TODO: figure out partial vs full cut
+        config.printerHardware!.cutter = Conf.PrintCutter.partial;
+      }
+
+      config.printerHardware!.hasMultiByteSupport = Util.hasFlag(firstByte, PrinterId.hasMultiByteSupport);
+      config.printerHardware!.hasDmdConnected = Util.hasFlag(firstByte, PrinterId.hasDmdConnected);
       break;
     case 'VersionID':
       // There is a one to one correspondence between the version ID (n = 3, 51) and the firmware version.
@@ -110,10 +115,10 @@ function setSingleByteData(
 function setPrinterInfoB(
   msg: Uint8Array,
   subcommand: TransmitPrinterIdCmd,
-  config: ISettingUpdateMessage,
+  config: Cmds.ISettingUpdateMessage,
 ) {
   // sanity check
-  if (msg.at(0) !== PrinterInfoHeaderB || msg.at(-1) !== AsciiCodeNumbers.NUL) {
+  if (msg.at(0) !== PrinterInfoHeaderB || msg.at(-1) !== Util.AsciiCodeNumbers.NUL) {
     return;
   }
 
@@ -129,44 +134,44 @@ function setPrinterInfoB(
     // Printer Info B
     case 'InfoBFirmwareVersion':
       // "Firmware version", not a string?
-      config.firmwareVersion = [...packetData];
+      config.printerHardware!.firmware = String.fromCharCode(...packetData);
       break;
     case 'InfoBMakerName':
-      config.manufacturerName = String.fromCharCode(...packetData);
+      config.printerHardware!.manufacturer = String.fromCharCode(...packetData);
       break;
     case 'InfoBModelName':
-      config.modelName = String.fromCharCode(...packetData);
+      config.printerHardware!.model = String.fromCharCode(...packetData);
       break;
     case 'InfoBSerialNo':
-      config.serialNumber = String.fromCharCode(...packetData);
+      config.printerHardware!.serialNumber = String.fromCharCode(...packetData);
       break;
     case 'InfoBFontLanguage':
-      config.fontLanguageSupport = String.fromCharCode(...packetData);
+      config.printerHardware!.fontLanguageSupport = String.fromCharCode(...packetData);
       break;
   }
 }
 
-export function parseTransmitPrinterId(
+export function parseCmdTransmitPrinterId(
   msg: Uint8Array,
   cmd: Cmds.IPrinterCommand,
-): IMessageHandlerResult<Uint8Array> {
+): Cmds.IMessageHandlerResult<Uint8Array> {
   // https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/gs_ci.html
-  if (cmd.type !== "CustomCommand" || (cmd as TransmitPrinterId).typeExtended !== TransmitPrinterId.typeE) {
-    throw new MessageParsingError(
+  if ((cmd as CmdTransmitPrinterId).typeExtended !== CmdTransmitPrinterId.typeE) {
+    throw new Cmds.MessageParsingError(
       `Incorrect command '${cmd.name}' passed to parseTransmitPrinterId, expected 'TransmitPrinterId' instead.`,
       msg
     );
   }
-  const command = (cmd as TransmitPrinterId);
+  const command = (cmd as CmdTransmitPrinterId);
 
-  const result: IMessageHandlerResult<Uint8Array> = {
+  const result: Cmds.IMessageHandlerResult<Uint8Array> = {
     messageIncomplete: false,
     messageMatchedExpectedCommand: false,
     messages: [],
     remainder: msg,
   }
 
-  const config: ISettingUpdateMessage = {
+  const config: Cmds.ISettingUpdateMessage = {
     messageType: "SettingUpdateMessage"
   }
 

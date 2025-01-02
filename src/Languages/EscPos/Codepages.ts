@@ -1,4 +1,4 @@
-import type { Codepage } from "../../Codepages/index.js";
+import * as Util from '../../Util/index.js';
 
 export const enum codepageNumberForEscPos {
   CP437 = 0,
@@ -64,7 +64,7 @@ export const enum codepageNumberForEscPos {
 }
 
 /** Unusual commands to set codepages with ESC t */
-export const codepageSwitchCmd = new Map<Codepage | codepageNumberForEscPos, Uint8Array>([
+export const codepageSwitchCmd = new Map<(Util.Codepage | codepageNumberForEscPos), Uint8Array>([
   ['CP437',    new Uint8Array([codepageNumberForEscPos.CP437])],
   ['CP720',    new Uint8Array([codepageNumberForEscPos.CP720])],
   ['CP737',    new Uint8Array([codepageNumberForEscPos.CP737])],

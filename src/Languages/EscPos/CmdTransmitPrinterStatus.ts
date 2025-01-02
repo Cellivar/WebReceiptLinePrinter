@@ -1,8 +1,6 @@
-import * as Cmds from "../../../Documents/index.js";
-import { MessageParsingError, type IErrorMessage, type IMessageHandlerResult, type IStatusMessage } from "../../Communication/index.js";
-import type { CommandSet } from "../../../Documents/CommandSet.js";
-import { AsciiCodeNumbers, PrinterCommandLanguages } from "../index.js";
-import { hasFlag, type EscPosDocState, EscPos } from "./index.js";
+import * as Util from '../../Util/index.js';
+import * as Conf from '../../Configs/index.js';
+import * as Cmds from '../../Commands/index.js';
 
 const awaitsEffect = new Cmds.CommandEffectFlags(['waitsForResponse']);
 
@@ -17,10 +15,10 @@ export const transmitPrinterStatusCmdMap: Record<TransmitPrinterStatusCmd, numbe
   // InkSensorStatus  : 4, //52
 }
 
-export class TransmitPrinterStatus implements Cmds.IPrinterExtendedCommand {
+export class CmdTransmitPrinterStatus implements Cmds.IPrinterExtendedCommand {
   public static typeE = Symbol('TransmitPrinterStatus');
-  typeExtended                 = TransmitPrinterStatus.typeE;
-  commandLanguageApplicability = new PrinterCommandLanguages([EscPos]);
+  typeExtended                 = CmdTransmitPrinterStatus.typeE;
+  commandLanguageApplicability = Conf.PrinterCommandLanguage.escPos;
   name                         = 'Transmit Printer Status';
   type                         = "CustomCommand" as const;
   effectFlags                  = awaitsEffect;
@@ -29,16 +27,20 @@ export class TransmitPrinterStatus implements Cmds.IPrinterExtendedCommand {
   constructor(public readonly subcommand: TransmitPrinterStatusCmd) {}
 }
 
-export function handleTransmitPrinterStatus(
+export const mappingCmdTransmitPrinterStatus: Cmds.IPrinterCommandMapping<Uint8Array> = {
+  commandType: CmdTransmitPrinterStatus.typeE,
+  transpile: handleCmdTransmitPrinterStatus,
+  readMessage: parseCmdTransmitPrinterStatus,
+}
+
+export function handleCmdTransmitPrinterStatus(
   cmd: Cmds.IPrinterCommand,
-  _docState: EscPosDocState,
-  commandSet: CommandSet<Uint8Array>,
 ): Uint8Array {
-  const command = cmd as TransmitPrinterStatus;
+  const command = cmd as CmdTransmitPrinterStatus;
   const argnum = transmitPrinterStatusCmdMap[command.subcommand];
   return new Uint8Array([
     // GS r <arg>
-    AsciiCodeNumbers.GS, ...commandSet.encodeCommand('r'), argnum,
+    Util.AsciiCodeNumbers.GS, 0x72, argnum,
   ]);
 }
 
@@ -64,26 +66,33 @@ enum DrawerKickByte {
 //   ColorTwoNearEnd = 0x02,
 // }
 
-export function parseTransmitPrinterStatus(
+export function parseCmdTransmitPrinterStatus(
   msg: Uint8Array,
   cmd: Cmds.IPrinterCommand,
-): IMessageHandlerResult<Uint8Array> {
+): Cmds.IMessageHandlerResult<Uint8Array> {
   // https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/gs_lr.html
-  if (cmd.type !== "CustomCommand" || (cmd as TransmitPrinterStatus).typeExtended !== TransmitPrinterStatus.typeE) {
-    throw new MessageParsingError(
+  if ((cmd as CmdTransmitPrinterStatus).typeExtended !== CmdTransmitPrinterStatus.typeE) {
+    throw new Cmds.MessageParsingError(
       `Incorrect command '${cmd.name}' passed to parseTransmitPrinterStatus, expected 'TransmitPrinterStatus' instead.`,
       msg
     );
   }
-  const command = (cmd as TransmitPrinterStatus);
-
-  const status: IStatusMessage = {
-    messageType: "StatusMessage",
+  const result: Cmds.IMessageHandlerResult<Uint8Array> = {
+    messageIncomplete: false,
+    messageMatchedExpectedCommand: true,
+    messages: [],
+    remainder: msg.slice(1)
   }
-  const error: IErrorMessage = {
+
+  const command = (cmd as CmdTransmitPrinterStatus);
+
+  const status: Cmds.IStatusMessage = {
+    messageType: "StatusMessage",
+    statuses: new Cmds.StatusStateSet(),
+  }
+  const error: Cmds.IErrorMessage = {
     messageType: "ErrorMessage",
-    displayText: "Status update reported an error",
-    isErrored: false,
+    errors: new Cmds.ErrorStateSet(),
   }
 
   // Each status is 1 byte.
@@ -91,12 +100,19 @@ export function parseTransmitPrinterStatus(
 
   switch (command.subcommand) {
     case 'PaperSensorStatus':
-      status.paperLow = hasFlag(byte, PaperSensorByte.RollPaperNearEnd);
-      error.paperOut = hasFlag(byte, PaperSensorByte.RollPaperEnd);
-      error.isErrored = error.paperOut;
+      if (Util.hasFlag(byte, PaperSensorByte.RollPaperNearEnd)) {
+        error.errors.add(Cmds.ErrorState.MediaNearEnd);
+      }
+      if (Util.hasFlag(byte, PaperSensorByte.RollPaperEnd)) {
+        error.errors.add(Cmds.ErrorState.MediaEmpty);
+      }
+      if (error.errors.size > 0) { result.messages.push(error); }
       break;
     case 'DrawerKickStatus':
-      status.drawerKickStatus = hasFlag(byte, DrawerKickByte.DrawerKickOut);
+      if (Util.hasFlag(byte, DrawerKickByte.DrawerKickOut)) {
+        status.statuses.add(Cmds.StatusState.DrawerOpen);
+      }
+      if (status.statuses.size > 0) { result.messages.push(status); }
       break;
     // case 'InkSensorStatus':
     //   status.colorOneLow = hasFlag(byte, InkStatusByte.ColorOneNearEnd);
@@ -104,12 +120,5 @@ export function parseTransmitPrinterStatus(
     //   break;
   }
 
-  const result: IMessageHandlerResult<Uint8Array> = {
-    messageIncomplete: false,
-    messageMatchedExpectedCommand: true,
-    messages: [status],
-    remainder: msg.slice(1)
-  }
-  if (error.isErrored) { result.messages.push(error); }
   return result;
 }
