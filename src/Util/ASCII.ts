@@ -120,3 +120,29 @@ export function asciiToDisplay(...codes: number[]) {
     return `${hex(c)}[${controlcode}]`;
   }).join(', ');
 }
+
+/**
+ * Convert an ASCII string to a raw byte array.
+ *
+ * Will throw an error for any characters not in the 256 character ASCII table.
+ * Don't send this unicode and expect a happy ending.
+ */
+export function EncodeAscii(str: string): Uint8Array {
+  const out = new Uint8Array(str.length);
+  for (let charIdx = 0; charIdx < str.length; charIdx++) {
+    const char = str.charCodeAt(charIdx);
+    if (char > 0xFF) {
+      throw new Error(`Character at index ${charIdx} of "${str}" is not ASCII`);
+    }
+    out[charIdx] = char;
+  }
+  return out;
+}
+
+/**
+ * Convert a byte array of raw ASCII codepoints to a string.
+ * @param array
+ */
+export function DecodeAscii(array: Uint8Array): string {
+  return new TextDecoder('ascii').decode(array);
+}
