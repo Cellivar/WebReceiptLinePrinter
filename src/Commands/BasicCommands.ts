@@ -1,87 +1,27 @@
-import type { Codepage } from "../Printers/Codepages/index.js";
-import { clampToRange } from "../NumericRange.js";
-import type { PrinterCommandLanguages } from "../Printers/Languages/index.js";
+import * as Util from '../Util/index.js';
+import { BasicCommand, CommandEffectFlags, NoEffect, type CommandTypeBasic, type IPrinterBasicCommand } from './Commands.js';
 
-/** General categories of side-effects commands can cause to a device. */
-export type PrinterCommandEffectTypes
-  = "unknown"
-  | "altersConfig"
-  | "feedsPaper"
-  | "lossOfConnection"
-  | "actuatesCutter"
-  | "pulsesOutputPins"
-  | "waitsForResponse";
-
-/** Flags to indicate special operations a command might cause. */
-export class CommandEffectFlags extends Set<PrinterCommandEffectTypes> { }
-export const NoEffect = new CommandEffectFlags();
-
-/** Union type of all possible commands that must be handled by command sets. */
-export type CommandType
-  // Users/PCLs may supply printer commands. This uses a different lookup table.
-  = "CustomCommand"
-  // General printer commands
-  | "Reset"
-  | "TestPrint"
-  | "Raw"
-  | "PulseOutput"
-  | "Newline"
-  | "Cut"
-  // Status and Config
-  | "GetConfiguration"
-  | "GetStatus"
-  // Print Format Commands
-  | "OffsetPrintPosition"
-  // Image commands
-  | "Image"
-  | "Barcode"
-  | "TwoDCode"
-  // Text formatting commands
-  | "TextFormatting"
-  | "TextDraw"
-  | "Text"
-  | "Codepage"
-  //| "Box"
-  | "HorizontalRule"
-  // Configuration commands
-  | "SetLineSpacing"
-  | "SetPrintArea"
-
-/** A command that can be sent to a printer. */
-export interface IPrinterCommand {
-  /** Get the display name of this command. */
-  readonly name: string;
-  /** Get the command type of this command. */
-  readonly type: CommandType;
-  /** Any effects this command may cause the printer to undergo. */
-  readonly effectFlags: CommandEffectFlags;
-
-  /** Get the human-readable output of this command. */
-  toDisplay(): string;
+export class NoOp extends BasicCommand {
+  name = 'No operation placeholder';
+  type: CommandTypeBasic = 'NoOp';
+  constructor() { super(); }
 }
 
-/** A custom command beyond the standard command set, with command-language-specific behavior. */
-export interface IPrinterExtendedCommand extends IPrinterCommand {
-  /** The unique identifier for this command. */
-  typeExtended: symbol;
-
-  /** Gets the command languages this extended command can apply to. */
-  commandLanguageApplicability: PrinterCommandLanguages;
+export class StartReceipt extends BasicCommand {
+  name = 'Explicitly start a new receipt.';
+  type = 'StartReceipt' as const;
+  constructor() { super([]); }
 }
 
-abstract class BasicCommand implements IPrinterCommand {
-  abstract name: string;
-  abstract type: CommandType;
-  effectFlags: CommandEffectFlags;
-  toDisplay() { return this.name; }
-  constructor(effects: PrinterCommandEffectTypes[]) {
-    this.effectFlags = new CommandEffectFlags(effects);
-  }
+export class EndReceipt extends BasicCommand {
+  name = 'Explicitly end a receipt.';
+  type: CommandTypeBasic = 'EndReceipt';
+  constructor() { super([]); }
 }
 
 export class Newline extends BasicCommand {
   name = 'Print a newline';
-  type: CommandType = 'Newline';
+  type: CommandTypeBasic = 'Newline';
   constructor() { super( ['feedsPaper']); }
 }
 
@@ -89,27 +29,27 @@ export type TestPrintType = 'hexadecimal' | 'rolling' | 'printerStatus'
 
 export class TestPrint extends BasicCommand {
   name = 'Run a test print';
-  type: CommandType = 'TestPrint';
+  type: CommandTypeBasic = 'TestPrint';
   constructor(public readonly printType: TestPrintType = 'rolling') {
     super(['feedsPaper', 'actuatesCutter', 'lossOfConnection']);
   }
 }
 
-export class GetConfiguration extends BasicCommand {
+export class QueryConfiguration extends BasicCommand {
   name = 'Get the printer configuration'
-  type: CommandType = 'GetConfiguration';
+  type: CommandTypeBasic = 'QueryConfiguration';
   constructor() { super(['waitsForResponse']); }
 }
 
 export class GetStatus extends BasicCommand {
   name = 'Get the printer status'
-  type: CommandType = 'GetStatus';
+  type: CommandTypeBasic = 'GetStatus';
   constructor() { super(['waitsForResponse']); }
 }
 
 export type CutType = "Partial" | "Complete"
 
-export class Cut implements IPrinterCommand {
+export class Cut implements IPrinterBasicCommand {
   name = 'Cut paper';
   type = "Cut" as const;
   effectFlags = new CommandEffectFlags(["actuatesCutter", "feedsPaper"]);
@@ -124,7 +64,7 @@ export class Cut implements IPrinterCommand {
 
 export type PulsePin = "Drawer1" | "Drawer2"
 
-export class PulseCommand implements IPrinterCommand {
+export class PulseCommand implements IPrinterBasicCommand {
   name = "Pulse the drawer kick output.";
   type = 'PulseOutput' as const;
   effectFlags = new CommandEffectFlags(["pulsesOutputPins"]);
@@ -149,7 +89,7 @@ export class PulseCommand implements IPrinterCommand {
   }
 }
 
-export class ImageCommand implements IPrinterCommand {
+export class ImageCommand implements IPrinterBasicCommand {
   name = 'Prints an image'
   type = "Image" as const;
   effectFlags = new CommandEffectFlags(["feedsPaper"]);
@@ -158,7 +98,7 @@ export class ImageCommand implements IPrinterCommand {
   constructor(public readonly imgData: string) {}
 }
 
-export class Barcode implements IPrinterCommand {
+export class Barcode implements IPrinterBasicCommand {
   name = 'Prints a barcode';
   type = 'Barcode' as const;
   effectFlags = new CommandEffectFlags(["feedsPaper"]);
@@ -167,7 +107,7 @@ export class Barcode implements IPrinterCommand {
   constructor(public readonly barcodeData: object) {}
 }
 
-export class TwoDCode implements IPrinterCommand {
+export class TwoDCode implements IPrinterBasicCommand {
   name = 'Prints a 2D code';
   type = 'TwoDCode' as const;
   effectFlags = new CommandEffectFlags(["feedsPaper"]);
@@ -176,7 +116,7 @@ export class TwoDCode implements IPrinterCommand {
   constructor(public readonly codeData: object) {}
 }
 
-export class RawCommand<TOutput> implements IPrinterCommand {
+export class RawCommand<TOutput> implements IPrinterBasicCommand {
   name = 'Adds raw command'
   type = "Raw" as const;
   effectFlags = new CommandEffectFlags(["unknown"]);
@@ -202,7 +142,7 @@ export interface TextFormat {
   height?: Height
 }
 
-export class TextFormatting implements IPrinterCommand {
+export class TextFormatting implements IPrinterBasicCommand {
   name = 'Set text formatting'
   type = "TextFormatting" as const;
   effectFlags = NoEffect;
@@ -243,7 +183,7 @@ export type OnlyBoxDrawingCharacters<S> =
       ? OnlyBoxDrawingCharacters<Tail>
       : never;
 
-export class TextDraw implements IPrinterCommand {
+export class TextDraw implements IPrinterBasicCommand {
   name = 'Write text as drawing'
   type = 'TextDraw' as const;
   effectFlags = NoEffect;
@@ -256,7 +196,7 @@ export class TextDraw implements IPrinterCommand {
   }
 }
 
-export class Text implements IPrinterCommand {
+export class Text implements IPrinterBasicCommand {
   name = 'Write text'
   type = 'Text' as const;
   effectFlags = NoEffect;
@@ -265,18 +205,18 @@ export class Text implements IPrinterCommand {
   constructor(public readonly text: string = '') {}
 }
 
-export class SetCodepage implements IPrinterCommand {
+export class SetCodepage implements IPrinterBasicCommand {
   name = 'Set character codepage'
   type = 'Codepage' as const;
   effectFlags = NoEffect;
   toDisplay() { return `Set codepage ${this.codepage}` }
 
-  constructor(public readonly codepage: Codepage) {}
+  constructor(public readonly codepage: Util.Codepage) {}
 }
 
 export type PrintPositionOrigin = "absolute" | "relative";
 
-export class OffsetPrintPosition implements IPrinterCommand {
+export class OffsetPrintPosition implements IPrinterBasicCommand {
   name = 'Change print position'
   type = 'OffsetPrintPosition' as const;
   effectFlags = NoEffect;
@@ -293,7 +233,7 @@ export class OffsetPrintPosition implements IPrinterCommand {
   }
 }
 
-export class SetPrintArea implements IPrinterCommand {
+export class SetPrintArea implements IPrinterBasicCommand {
   name = 'Set print area'
   type = 'SetPrintArea' as const;
   effectFlags = NoEffect;
@@ -311,7 +251,7 @@ export class SetPrintArea implements IPrinterCommand {
 
 export type LineStyle = 'single' | 'double'
 
-export class HorizontalRule implements IPrinterCommand {
+export class HorizontalRule implements IPrinterBasicCommand {
   name = 'Add horizontal rule'
   type = 'HorizontalRule' as const;
   effectFlags = NoEffect;
@@ -322,7 +262,7 @@ export class HorizontalRule implements IPrinterCommand {
     public readonly lineStyle: LineStyle = 'single') {}
 }
 
-export class SetLineSpacing implements IPrinterCommand {
+export class SetLineSpacing implements IPrinterBasicCommand {
   name = 'Set the vertical line spacing'
   type = 'SetLineSpacing' as const;
   effectFlags = NoEffect;
@@ -331,6 +271,6 @@ export class SetLineSpacing implements IPrinterCommand {
   public readonly spacing: number;
 
   constructor(spacing: number = 1) {
-    this.spacing = clampToRange(spacing, 0, 255);
+    this.spacing = Util.clampToRange(spacing, 0, 255);
   }
 }
