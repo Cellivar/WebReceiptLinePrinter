@@ -149,9 +149,7 @@ class BasicDocumentPrinterApp {
           <hr>
           <p>Fix the issue, then dismiss this alert to check the status again.</p>`,
           // And when the alert is dismissed, check the status again!
-          () => printer.sendDocument({
-            commands: [new WebReceipt.GetStatus()]
-          })
+          () => printer.sendDocument(WebReceipt.ReadyToPrintDocuments.getStatus),
         );
       });
     });
@@ -268,30 +266,21 @@ class BasicDocumentPrinterApp {
         e.preventDefault();
         const printerIdx = (e.currentTarget as HTMLAnchorElement).dataset.printerIdx as unknown as number;
         const printer = this.printers[printerIdx];
-        const doc = {
-          commands: [new WebReceipt.TestPrint('rolling')]
-        };
-        await printer.sendDocument(doc);
+        await printer.sendDocument(WebReceipt.ReadyToPrintDocuments.printTest);
       });
     document.getElementById(`printconfig_${idx}`)!
       .addEventListener('click', async (e) => {
         e.preventDefault();
         const printerIdx = (e.currentTarget as HTMLAnchorElement).dataset.printerIdx as unknown as number;
         const printer = this.printers[printerIdx];
-        const doc = {
-          commands: [new WebReceipt.TestPrint('printerStatus')]
-        };
-        await printer.sendDocument(doc);
+        await printer.sendDocument(WebReceipt.ReadyToPrintDocuments.printConfig);
       });
     document.getElementById(`drawerkick_${idx}`)!
       .addEventListener('click', async (e) => {
         e.preventDefault();
         const printerIdx = (e.currentTarget as HTMLAnchorElement).dataset.printerIdx as unknown as number;
         const printer = this.printers[printerIdx];
-        const doc = {
-          commands: [new WebReceipt.PulseCommand()]
-        };
-        await printer.sendDocument(doc);
+        await printer.sendDocument(WebReceipt.ReadyToPrintDocuments.drawerKick);
       });
   }
 

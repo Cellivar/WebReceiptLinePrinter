@@ -31,6 +31,7 @@ export const mappingCmdTransmitPrinterStatus: Cmds.IPrinterCommandMapping<Uint8A
   commandType: CmdTransmitPrinterStatus.typeE,
   transpile: handleCmdTransmitPrinterStatus,
   readMessage: parseCmdTransmitPrinterStatus,
+  formInclusionMode: Cmds.CommandFormInclusionMode.noForm,
 }
 
 export function handleCmdTransmitPrinterStatus(

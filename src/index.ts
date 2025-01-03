@@ -6,4 +6,4 @@ export * from './Languages/index.js';
 export * from './ReceiptLine/index.js';
 
 export * from './ReceiptPrinter.js';
-//export * from './ReadyToPrintDocuments.js';
+export * from './ReadyToPrintDocuments.js';
