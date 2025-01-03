@@ -588,7 +588,6 @@ function createLine(
 
   const isTextLine = line.every(el => el.text !== undefined);
   const firstColumn = line[0];
-  console.warn('First column', firstColumn);
 
   // remove zero width columns
   let columns = line.filter(el => el.width !== 0);
@@ -632,7 +631,6 @@ function createLine(
   const left = Math.floor(freeWidth * getLeftAlignmentMultiplier(firstColumn.lineAlignment));
   const width = printerConfig.charactersPerLine - freeWidth;
   const right = freeWidth - left;
-  console.warn(`Line margins are | ${left} [ ${width} ] ${right} |`);
 
   // process text
   if (isTextLine) {
