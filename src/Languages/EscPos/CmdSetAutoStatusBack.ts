@@ -32,7 +32,8 @@ export class CmdSetAutoStatusBack implements Cmds.IPrinterExtendedCommand {
 export const mappingCmdSetAutoStatusBack: Cmds.IPrinterCommandMapping<Uint8Array> = {
   commandType: CmdSetAutoStatusBack.typeE,
   transpile: handleCmdSetAutoStatusBack,
-  readMessage: parseCmdSetAutoStatusBack
+  readMessage: parseCmdSetAutoStatusBack,
+  formInclusionMode: Cmds.CommandFormInclusionMode.noForm,
 }
 
 export function handleCmdSetAutoStatusBack(

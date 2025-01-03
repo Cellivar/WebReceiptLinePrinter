@@ -23,10 +23,6 @@ export function transpileDocument(
 
   const forms = splitTransactionsAndForms(doc.commands, commandSet, commandReorderBehavior);
 
-  // Wait why do we throw away the form data here?
-  // ZPL has some advanced form processing concepts that aren't implemented in
-  // this library yet, and that code was annoying to figure out. It hangs out
-  // here until the advanced form processing can be implemented later.
   // TODO: Handle separate forms instead of mooshing them together.
   const { transactions, effects } = combineForms(forms);
 
@@ -140,10 +136,8 @@ function splitTransactionsAndForms(
     }
 
     // Record the command in the transpile buffer.
-    if (command.type !== "NoOp") {
       currentTrans.commands.push(command);
       command.effectFlags.forEach(f => currentForm.effects.add(f));
-    }
 
     if (command.effectFlags.has("waitsForResponse")) {
       // This command expects the printer to provide feedback.
@@ -219,6 +213,19 @@ function splitTransactionsAndForms(
         reorderedForms.forEach(f => forms.push(f));
         break;
     }
+  }
+
+  const lastTransaction = forms.at(-1)?.transactions.at(-1);
+  if (lastTransaction === undefined || lastTransaction.waitCommands.length === 0) {
+    // Best practice is to always have the printer return some information when
+    // it's finished printing. If the last transaction doesn't have anything to
+    // wait for add our own.
+    const awaitForms = splitTransactionsAndForms(
+      [new Cmds.GetStatus()],
+      commandSet,
+      reorderBehavior,
+    );
+    awaitForms.forEach(f => forms.push(f));
   }
 
   return forms;

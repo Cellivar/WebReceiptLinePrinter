@@ -48,6 +48,7 @@ export const mappingCmdTransmitPrinterId: Cmds.IPrinterCommandMapping<Uint8Array
   commandType: CmdTransmitPrinterId.typeE,
   transpile: handleCmdTransmitPrinterId,
   readMessage: parseCmdTransmitPrinterId,
+  formInclusionMode: Cmds.CommandFormInclusionMode.noForm,
 }
 
 export function handleCmdTransmitPrinterId(
@@ -172,7 +173,9 @@ export function parseCmdTransmitPrinterId(
   }
 
   const config: Cmds.ISettingUpdateMessage = {
-    messageType: "SettingUpdateMessage"
+    messageType: "SettingUpdateMessage",
+    printerHardware: {},
+    printerMedia: {}
   }
 
   // The GS I command is broken into three groups:

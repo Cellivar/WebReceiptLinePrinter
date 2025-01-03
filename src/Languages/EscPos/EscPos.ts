@@ -10,8 +10,8 @@ import { mappingCmdSetAutoStatusBack } from "./CmdSetAutoStatusBack.js";
 
 /** PCL handler for ESC/POS */
 export class EscPos extends Cmds.RawCommandSet {
-  override get documentStartPrefix() { return new Uint8Array([Util.AsciiCodeNumbers.LF]); };
-  override get documentEndSuffix() { return new Uint8Array([Util.AsciiCodeNumbers.LF]); };
+  override get documentStartPrefix() { return this.noop; };
+  override get documentEndSuffix() { return this.noop; };
 
   constructor(
     extendedCommands: Cmds.IPrinterCommandMapping<Uint8Array>[] = []
@@ -91,7 +91,6 @@ export class EscPos extends Cmds.RawCommandSet {
           // The manual indicates always getting the paper status is a good practice
           // as it tells you when the printer is done printing. This also ensures we
           // always have something to await at the end of a document.
-          expand: () => [new CmdTransmitPrinterStatus('PaperSensorStatus')]
         },
         Barcode: {
           commandType: 'Barcode',
