@@ -41,6 +41,12 @@ export class QueryConfiguration extends BasicCommand {
   constructor() { super(['waitsForResponse']); }
 }
 
+export class PrintConfiguration extends BasicCommand {
+  name = 'Print the printer configuration'
+  type: CommandTypeBasic = 'PrintConfiguration';
+  constructor() { super(['feedsPaper']); }
+}
+
 export class GetStatus extends BasicCommand {
   name = 'Get the printer status'
   type: CommandTypeBasic = 'GetStatus';

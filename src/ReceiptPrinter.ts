@@ -4,6 +4,7 @@ import * as Cmds from './Commands/index.js';
 import * as Docs from './Documents/index.js';
 import * as Lang from './Languages/index.js';
 import * as Mux from 'web-device-mux';
+import { ReadyToPrintDocuments } from './ReadyToPrintDocuments.js';
 
 export interface ReceiptPrinterEventMap {
   //disconnectedDevice: CustomEvent<string>;
@@ -193,12 +194,7 @@ export class ReceiptPrinter<TChannelType extends Conf.MessageArrayLike> extends 
     do {
       retryLimit--;
       try {
-        await this.sendDocument({
-          commands: [
-            new Cmds.QueryConfiguration(),
-            new Cmds.GetStatus(),
-          ]
-        });
+        await this.sendDocument(ReadyToPrintDocuments.getConfig);
         return this.printerOptions;
       }
       catch (e) {
@@ -232,7 +228,7 @@ export class ReceiptPrinter<TChannelType extends Conf.MessageArrayLike> extends 
 
   /** Send a compiled document to the printer. */
   public async sendCompiledDocument(doc: Docs.CompiledDocument): Promise<boolean> {
-    if (this._disposed == true) {
+    if (!this.connected) {
       throw new Mux.DeviceNotReadyError("Printer is not ready to communicate.");
     }
 

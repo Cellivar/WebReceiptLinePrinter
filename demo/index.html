@@ -91,6 +91,9 @@
       // For this demo we're going to make use of the USB printer manager
       // so it can take care of concerns like the USB connect and disconnect events.
 
+      // For this demo we're going to make use of the USB printer manager
+      // so it can take care of concerns like the USB connect and disconnect events.
+
       // It's a handy-dandy feature included from the web-device-mux library!
       // We need to tell it what type of device it's managing, and how to filter
       // USB devices that are receipt printers.
@@ -220,9 +223,7 @@
                 <hr>
                 <p>Fix the issue, then dismiss this alert to check the status again.</p>`,
                 // And when the alert is dismissed, check the status again!
-                () => printer.sendDocument({
-                  commands: [new WebReceipt.GetStatus()]
-                })
+                () => printer.sendDocument(WebReceipt.ReadyToPrintDocuments.getStatus),
               );
             });
           });
@@ -339,30 +340,21 @@
               e.preventDefault();
               const printerIdx = (e.currentTarget as HTMLAnchorElement).dataset.printerIdx as unknown as number;
               const printer = this.printers[printerIdx];
-              const doc = {
-                commands: [new WebReceipt.TestPrint('rolling')]
-              };
-              await printer.sendDocument(doc);
+              await printer.sendDocument(WebReceipt.ReadyToPrintDocuments.printTest);
             });
           document.getElementById(`printconfig_${idx}`)!
             .addEventListener('click', async (e) => {
               e.preventDefault();
               const printerIdx = (e.currentTarget as HTMLAnchorElement).dataset.printerIdx as unknown as number;
               const printer = this.printers[printerIdx];
-              const doc = {
-                commands: [new WebReceipt.TestPrint('printerStatus')]
-              };
-              await printer.sendDocument(doc);
+              await printer.sendDocument(WebReceipt.ReadyToPrintDocuments.printConfig);
             });
           document.getElementById(`drawerkick_${idx}`)!
             .addEventListener('click', async (e) => {
               e.preventDefault();
               const printerIdx = (e.currentTarget as HTMLAnchorElement).dataset.printerIdx as unknown as number;
               const printer = this.printers[printerIdx];
-              const doc = {
-                commands: [new WebReceipt.PulseCommand()]
-              };
-              await printer.sendDocument(doc);
+              await printer.sendDocument(WebReceipt.ReadyToPrintDocuments.drawerKick);
             });
         }
 
