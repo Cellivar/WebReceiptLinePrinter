@@ -261,6 +261,27 @@ export class BitmapGRF {
     return this.fromCanvasImageData(data, imageConversionOptions);
   }
 
+  /** Convert a Base64 encoded PNG to a BitmapGRF. */
+  public static async fromBase64PNG(
+    png: string,
+    imageConversionOptions?: ImageConversionOptions,
+  ): Promise<BitmapGRF> {
+    // Use an Image object as a parser for the PNG data
+    const img = new Image();
+    img.src = png;
+    await img.decode();
+
+    // And render it to an offscreen canvas to get its image data.
+    const ctx = new OffscreenCanvas(img.width, img.height)
+      .getContext('2d') as OffscreenCanvasRenderingContext2D;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, 0);
+
+    const data = ctx.getImageData(0, 0, img.width, img.height);
+
+    return this.fromCanvasImageData(data, imageConversionOptions);
+  }
+
   /**
    * Rotate the image, returning a new image.
    * @param angle The angle to rotate the image.

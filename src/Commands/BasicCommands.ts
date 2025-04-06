@@ -101,7 +101,7 @@ export class ImageCommand implements IPrinterBasicCommand {
   effectFlags = new CommandEffectFlags(["feedsPaper"]);
   toDisplay() { return this.name; }
 
-  constructor(public readonly imgData: string) {}
+  constructor(public readonly img: Util.BitmapGRF) {}
 }
 
 export class Barcode implements IPrinterBasicCommand {

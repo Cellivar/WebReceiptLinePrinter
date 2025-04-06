@@ -1,5 +1,6 @@
 /* eslint-disable no-control-regex */
 import * as Cmds from '../Commands/index.js';
+import * as Util from '../Util/index.js';
 import { repeat, numberInRange, clampToRange } from '../Util/NumericRange.js';
 import type { IDocument } from '../Documents/index.js';
 
@@ -64,6 +65,7 @@ function getLeftAlignmentMultiplier(align: Cmds.Alignment) {
   const alignMultiplier: Record<Cmds.Alignment, number> = {
     Left: 0,
     Center: 0.5,
+    Toggle: 0.5,
     Right: 1
   };
   return alignMultiplier[align];
@@ -431,7 +433,10 @@ function columnsToLine(
  * @param {Cmds.PrinterConfig} printerConfig Printer configuration
  * @returns {IDocument} PCL document to give to a printer.
  */
-export function parseReceiptLineToDocument(doc: string, printerConfig: Cmds.PrinterConfig): IDocument {
+export async function parseReceiptLineToDocument(
+  doc: string,
+  printerConfig: Cmds.PrinterConfig
+): Promise<IDocument> {
   // initialize state variables
   const state: parseState = {
     wrap: true,
@@ -450,10 +455,11 @@ export function parseReceiptLineToDocument(doc: string, printerConfig: Cmds.Prin
   }
 
   // parse each line and generate commands
-  const res: Cmds.IPrinterCommand[] = doc
+  const res = (await Promise.all(doc
     .normalize()
     .split(/\n|\r\n|\r/)
-    .flatMap(line => createLine(parseLine(line, state), printerConfig, state));
+    .map(async line => await createLine(parseLine(line, state), printerConfig, state))))
+    .flat();
 
   // Clean up any lingering table formatting
   switch (state.nextRuleOperation) {
@@ -579,11 +585,11 @@ function parseEscape(str: string) {
  * @param {object} state state variables
  * @returns {string} printer command fragment or SVG image fragment
  */
-function createLine(
+async function createLine(
   line: lineElement[],
   printerConfig: Cmds.PrinterConfig,
   state: parseState
-): Cmds.IPrinterCommand[] {
+): Promise<Cmds.IPrinterCommand[]> {
   const lineCmds: Cmds.IPrinterCommand[] = [];
 
   const isTextLine = line.every(el => el.text !== undefined);
@@ -827,7 +833,8 @@ function createLine(
     // append commands to print image
     lineCmds.push(
       ...resetFormattingCmds(left, width, right, firstColumn.align),
-      new Cmds.ImageCommand(firstColumn.image),
+      new Cmds.ImageCommand(
+        await Util.BitmapGRF.fromBase64PNG(firstColumn.image, { trimWhitespace: false })),
     );
   }
 

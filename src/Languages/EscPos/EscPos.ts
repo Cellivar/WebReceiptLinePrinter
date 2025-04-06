@@ -106,7 +106,7 @@ export class EscPos extends Cmds.RawCommandSet {
         },
         Image: {
           commandType: 'Image',
-          transpile: (c) => { throw new Cmds.TranspileDocumentError(`Command not implemented: ${c.constructor.name}`) },
+          transpile: (c, d) => Basic.image(c as Cmds.ImageCommand, d),
         },
         SetLineSpacing: {
           commandType: 'SetLineSpacing',
