@@ -944,53 +944,12 @@ limitations under the License.
           '\x1b{' + String.fromCharCode(this.upsideDown) +
           '\x1c.';
       },
-      // image split size
-      split: 512,
-      // print image: GS 8 L p1 p2 p3 p4 m fn a bx by c xL xH yL yH d1 ... dk GS ( L pL pH m fn
-      image: function (image) {
-          const align = arguments[1] || this.alignment;
-          const left = arguments[2] || this.left;
-          const width = arguments[3] || this.width;
-          const right = arguments[4] || this.right;
-          let r = this.upsideDown ? this.area(right + this.marginRight - this.margin, width, left) + this.align(2 - align) : '';
-          const img = PNG.sync.read(Buffer.from(image, 'base64'));
-          const w = img.width;
-          const d = Array(w).fill(0);
-          let j = this.upsideDown ? img.data.length - 4 : 0;
-          for (let z = 0; z < img.height; z += this.split) {
-              const h = Math.min(this.split, img.height - z);
-              const l = (w + 7 >> 3) * h + 10;
-              r += '\x1d8L' + String.fromCharCode(l & 255, l >> 8 & 255, l >> 16 & 255, l >> 24 & 255, 48, 112, 48, 1, 1, 49, w & 255, w >> 8 & 255, h & 255, h >> 8 & 255);
-              for (let y = 0; y < h; y++) {
-                  let i = 0, e = 0;
-                  for (let x = 0; x < w; x += 8) {
-                      let b = 0;
-                      const q = Math.min(w - x, 8);
-                      for (let p = 0; p < q; p++) {
-                          const f = Math.floor((d[i] + e * 5) / 16 + Math.pow(((img.data[j] * .299 + img.data[j + 1] * .587 + img.data[j + 2] * .114 - 255) * img.data[j + 3] + 65525) / 65525, 1 / this.gamma) * 255);
-                          j += this.upsideDown ? -4 : 4;
-                          if (this.gradient) {
-                              d[i] = e * 3;
-                              e = f < this.threshold ? (b |= 128 >> p, f) : f - 255;
-                              if (i > 0) {
-                                  d[i - 1] += e;
-                              }
-                              d[i++] += e * 7;
-                          }
-                          else {
-                              if (f < this.threshold) {
-                                  b |= 128 >> p;
-                              }
-                          }
-                      }
-                      r += String.fromCharCode(b);
-                  }
-              }
-              r += '\x1d(L' + String.fromCharCode(2, 0, 48, 50);
-          }
-          return r;
-      },
-      // print QR Code: GS ( k pL pH cn fn n1 n2 GS ( k pL pH cn fn n GS ( k pL pH cn fn n GS ( k pL pH cn fn m d1 ... dk GS ( k pL pH cn fn m
+      // print QR Code:
+      // GS ( k pL pH cn fn n1 n2
+      // GS ( k pL pH cn fn n
+      // GS ( k pL pH cn fn n
+      // GS ( k pL pH cn fn m d1 ... dk
+      // GS ( k pL pH cn fn m
       qrcode: function (symbol, encoding) {
           if (typeof qrcode !== 'undefined') {
               let r = this.upsideDown ? this.area(this.right + this.marginRight - this.margin, this.width, this.left) + this.align(2 - this.alignment) : '';
@@ -1036,7 +995,11 @@ limitations under the License.
       qrlevel: {
           l: 48, m: 49, q: 50, h: 51
       },
-      // print barcode: GS w n GS h n GS H n GS k m n d1 ... dn
+      // print barcode:
+      // GS w n
+      // GS h n
+      // GS H n
+      // GS k m n d1 ... dn
       barcode: function (symbol, encoding) {
           let d = iconv.encode(symbol.data, encoding === 'multilingual' ? 'ascii' : encoding).toString('binary');
           const b = this.bartype[symbol.type] + Number(/upc|[ej]an/.test(symbol.type) && symbol.data.length < 9);

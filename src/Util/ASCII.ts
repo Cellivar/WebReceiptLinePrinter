@@ -143,6 +143,7 @@ export function EncodeAscii(str: string): Uint8Array {
  * Convert a byte array of raw ASCII codepoints to a string.
  * @param array
  */
-export function DecodeAscii(array: Uint8Array): string {
-  return new TextDecoder('ascii').decode(array);
+export function DecodeAscii(input?: Uint8Array) {
+  if (input === undefined) { return ''; }
+  return String.fromCharCode(...input);
 }

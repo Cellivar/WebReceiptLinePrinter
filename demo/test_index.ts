@@ -246,7 +246,7 @@ class BasicDocumentPrinterApp {
         const printer = this.printers[printerIdx];
         const textarea = this.labelForm.querySelector('#labelFormText') as HTMLTextAreaElement;
         const rawReceiptline = textarea.value;
-        const doc = WebReceipt.parseReceiptLineToDocument(rawReceiptline, printer.printerOptions);
+        const doc = await WebReceipt.parseReceiptLineToDocument(rawReceiptline, printer.printerOptions);
         await printer.sendDocument(doc);
       });
     document.getElementById(`printer_${idx}`)!

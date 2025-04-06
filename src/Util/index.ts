@@ -3,3 +3,4 @@ export * from './CodepageEncoder.js';
 export * from './EnumUtils.js';
 export * from './NumericRange.js';
 export * from './WebReceiptLineError.js';
+export * from './BitmapGRF.js';

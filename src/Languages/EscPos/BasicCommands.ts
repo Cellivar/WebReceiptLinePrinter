@@ -1,5 +1,6 @@
 import * as Util from '../../Util/index.js';
 import * as Cmds from '../../Commands/index.js';
+import * as Conf from '../../Configs/index.js';
 import { codepageNumberForEscPos, codepageSwitchCmd } from './Codepages.js';
 
 /** Encode a single character, for readability of command sequences. */
@@ -51,7 +52,7 @@ export function setTextFormatting(f: Cmds.TextFormat, docState: Cmds.TranspiledD
   const buffer: number[] = [];
 
   if (f.underline !== undefined || f.resetToDefault) { // ESC - // FS -
-    docState.textFormat.underline = f.underline;
+    docState.textFormat.underline = f.underline ?? 'None';
     let op: number;
     switch (f.underline) {
       default:
@@ -75,11 +76,20 @@ export function setTextFormatting(f: Cmds.TextFormat, docState: Cmds.TranspiledD
   }
 
   if (f.alignment !== undefined || f.resetToDefault) { // ESC a
-    docState.textFormat.alignment = f.alignment;
+    let newAlign = f.alignment ?? 'Center';
+    if (newAlign === 'Toggle') {
+      switch (docState.textFormat.alignment) {
+        case 'Left': newAlign = 'Right'; break;
+        case 'Right': newAlign = 'Left'; break;
+        default: newAlign = 'Center'; break;
+      }
+    }
+
+    docState.textFormat.alignment = newAlign;
     let op: number;
-    switch (f.alignment) {
+    switch (newAlign) {
+      default: Util.exhaustiveMatchGuard(newAlign); break;
       case 'Left': op = 0x00; break;
-      default:
       case 'Center': op = 0x01; break;
       case 'Right': op = 0x02; break;
     }
@@ -115,10 +125,10 @@ export function setCodepage(
     docState.codepage = gotCode;
   }
 
-  return [new Uint8Array([
+  return new Uint8Array([
     // ESC t <codepage ID>, then any other weird commands we might need to set.
-    Util.AsciiCodeNumbers.ESC, enc('t')]), code
-  ];
+    Util.AsciiCodeNumbers.ESC, enc('t'),
+    ...code]);
 }
 
 export function offsetPrintPosition(
@@ -203,10 +213,74 @@ export function text(
   const fragments = Util.CodepageEncoder
     .autoEncode(text, candidateCodepages)
     .flatMap(f => [
-      ...setCodepage(f.codepage, docState),
+      setCodepage(f.codepage, docState),
       f.bytes
     ]);
   return fragments;
+}
+
+export function image(
+  cmd: Cmds.ImageCommand,
+  docState: Cmds.TranspiledDocumentState
+) {
+  const buffer: number[] = [];
+  const invert = docState.initialConfig.printOrientation === Conf.PrintOrientation.inverted;
+
+  if (invert) {
+    // When printing inverted we must also invert the print area and alignment.
+    buffer.push(...setPrintArea(new Cmds.SetPrintArea(
+      docState.margin.rightChars,
+      docState.currentPrintWidth,
+      docState.margin.leftChars
+      ), docState),
+      ...setTextFormatting({alignment: "Toggle"}, docState)
+    );
+  // let r = docState.initialConfig.printOrientation == Conf.PrintOrientation.inverted
+  //   ? this.area(right + this.marginRight - this.margin, width, left) + this.align(2 - align)
+  //   : '';
+  }
+
+  // Number of rows of pixels to split the image on into multiple commands.
+  const maxImgLength = 512;
+
+  // ESCPOS treats colors as print element enable. 1 means black, 0 means white.
+  const bitmap = invert
+    ? cmd.img.toInvertedGRF().rotate(180)
+    : cmd.img.toInvertedGRF();
+  const imgWidth = bitmap.boundingBox.width;
+  const imgByteWidth = bitmap.boundingBox.width + 7 >> 3;
+  const imgData = bitmap.toBinaryGRF();
+
+  for (let z = 0; z < bitmap.boundingBox.height; z += maxImgLength) {
+    const imgSplitHeight = Math.min(maxImgLength, bitmap.boundingBox.height - z);
+    const imgDataLength = imgByteWidth * imgSplitHeight + 10; // TODO: why 10?
+
+    buffer.push(
+      Util.AsciiCodeNumbers.GS, enc('8'), enc('L'), // Direct load raster img
+      imgDataLength & 255,       // p1
+      imgDataLength >> 8 & 255,  // p2
+      imgDataLength >> 16 & 255, // p3
+      imgDataLength >> 24 & 255, // p4
+
+      48, 112, // raster img data command
+      48, // monocolor, 52 = grayscale
+      1,  // bx, horizontal scale, 1 or 2
+      1,  // by, vertical scale, 1 or 2
+      49, // c, color, 49 for mono. Not all printers support other colors.
+
+      imgWidth & 255,            // xL
+      imgWidth >> 8 & 255,       // xH
+      imgSplitHeight & 255,      // yL
+      imgSplitHeight >> 8 & 255, // yH
+
+      ...imgData.slice((z + 7 >> 3), imgByteWidth * imgSplitHeight),
+
+      Util.AsciiCodeNumbers.GS, enc('('), enc('L'), // Print raster img
+      2, 0, 48, 50
+    );
+  }
+
+  return new Uint8Array(buffer);
 }
 
 export function setFormattingCodepage() {
