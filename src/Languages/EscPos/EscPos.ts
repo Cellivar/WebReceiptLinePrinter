@@ -98,7 +98,7 @@ export class EscPos extends Cmds.RawCommandSet {
         },
         Codepage: {
           commandType: 'Codepage',
-          transpile: (c, d) => this.combineCommands(...Basic.setCodepage((c as Cmds.SetCodepage).codepage, d)),
+          transpile: (c, d) => Basic.setCodepage((c as Cmds.SetCodepage).codepage, d),
         },
         HorizontalRule: {
           commandType: 'HorizontalRule',

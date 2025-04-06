@@ -1,5 +1,6 @@
 import * as Util from '../../Util/index.js';
 import * as Cmds from '../../Commands/index.js';
+import * as Conf from '../../Configs/index.js';
 import { codepageNumberForEscPos, codepageSwitchCmd } from './Codepages.js';
 
 /** Encode a single character, for readability of command sequences. */
@@ -51,7 +52,7 @@ export function setTextFormatting(f: Cmds.TextFormat, docState: Cmds.TranspiledD
   const buffer: number[] = [];
 
   if (f.underline !== undefined || f.resetToDefault) { // ESC - // FS -
-    docState.textFormat.underline = f.underline;
+    docState.textFormat.underline = f.underline ?? 'None';
     let op: number;
     switch (f.underline) {
       default:
@@ -75,11 +76,20 @@ export function setTextFormatting(f: Cmds.TextFormat, docState: Cmds.TranspiledD
   }
 
   if (f.alignment !== undefined || f.resetToDefault) { // ESC a
-    docState.textFormat.alignment = f.alignment;
+    let newAlign = f.alignment ?? 'Center';
+    if (newAlign === 'Toggle') {
+      switch (docState.textFormat.alignment) {
+        case 'Left': newAlign = 'Right'; break;
+        case 'Right': newAlign = 'Left'; break;
+        default: newAlign = 'Center'; break;
+      }
+    }
+
+    docState.textFormat.alignment = newAlign;
     let op: number;
-    switch (f.alignment) {
+    switch (newAlign) {
+      default: Util.exhaustiveMatchGuard(newAlign); break;
       case 'Left': op = 0x00; break;
-      default:
       case 'Center': op = 0x01; break;
       case 'Right': op = 0x02; break;
     }
@@ -115,10 +125,10 @@ export function setCodepage(
     docState.codepage = gotCode;
   }
 
-  return [new Uint8Array([
+  return new Uint8Array([
     // ESC t <codepage ID>, then any other weird commands we might need to set.
-    Util.AsciiCodeNumbers.ESC, enc('t')]), code
-  ];
+    Util.AsciiCodeNumbers.ESC, enc('t'),
+    ...code]);
 }
 
 export function offsetPrintPosition(
@@ -203,7 +213,7 @@ export function text(
   const fragments = Util.CodepageEncoder
     .autoEncode(text, candidateCodepages)
     .flatMap(f => [
-      ...setCodepage(f.codepage, docState),
+      setCodepage(f.codepage, docState),
       f.bytes
     ]);
   return fragments;

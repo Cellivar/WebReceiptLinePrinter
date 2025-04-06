@@ -134,7 +134,7 @@ export class RawCommand<TOutput> implements IPrinterBasicCommand {
 export type Underline = "None" | "Single" | "Double";
 export type Bold      = "None" | "Enable";
 export type Invert    = "None" | "Enable";
-export type Alignment = "Left" | "Center" | "Right";
+export type Alignment = "Left" | "Center" | "Right" | "Toggle";
 export type Width     = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export type Height    = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
